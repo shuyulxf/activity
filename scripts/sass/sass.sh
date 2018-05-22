@@ -1,0 +1,1 @@
+scss --watch src/main/webapp/static/scss:src/main/webapp/static/css --style compact

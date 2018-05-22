@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?><project-modules id="moduleCoreId" project-version="1.5.0">
+    <wb-module deploy-name="activity">
+        <wb-resource deploy-path="/" source-path="/WebContent" tag="defaultRootSource"/>
+        <wb-resource deploy-path="/WEB-INF/classes" source-path="/src/main/java"/>
+        <wb-resource deploy-path="/WEB-INF/lib" source-path="/target/activity/WEB-INF/lib"/>
+        <wb-resource deploy-path="/WEB-INF/views" source-path="/src/main/webapp/views"/>
+        <wb-resource deploy-path="/WEB-INF/conf" source-path="/src/main/resources/conf"/>
+        <wb-resource deploy-path="/WEB-INF/datas" source-path="/src/main/resources/datas"/>
+        <wb-resource deploy-path="/WEB-INF" source-path="/src/main/webapp/WEB-INF"/>
+        <wb-resource deploy-path="/WEB-INF/classes" source-path="/src/main/resources"/>
+        <wb-resource deploy-path="/WEB-INF/errorPages" source-path="/src/main/webapp/views/errors"/>
+        <wb-resource deploy-path="/css" source-path="/src/main/webapp/static/css"/>
+        <wb-resource deploy-path="/fonts" source-path="/src/main/webapp/static/fonts"/>
+        <wb-resource deploy-path="/images" source-path="/src/main/webapp/static/images"/>
+        <wb-resource deploy-path="/js" source-path="/src/main/webapp/static/js"/>
+        <wb-resource deploy-path="/WEB-INF/classes/mapper" source-path="/mapper"/>
+        <wb-resource deploy-path="/WEB-INF/excels" source-path="/src/main/resources/excels"/>
+        <property name="java-output-path" value="/activity/target/classes"/>
+        <property name="context-root" value="activity"/>
+    </wb-module>
+</project-modules>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" 
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	   xmlns:context="http://www.springframework.org/schema/context" 
+	   xmlns:mvc="http://www.springframework.org/schema/mvc" 
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans 
+	   					   http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
+	   					   http://www.springframework.org/schema/context 
+	   					   http://www.springframework.org/schema/context/spring-context-4.3.xsd 
+	   					   http://www.springframework.org/schema/mvc 
+	   					   http://www.springframework.org/schema/mvc/spring-mvc-4.3.xsd"> 
+	 
+	<!-- to get bean use ApplicationContextAware as the base class -->
+	<bean id="SpringContextHelper" class="indi.shuyu.common.base.SpringContextHelper"></bean>  
+	
+    
+    <bean id="cxfServices" class="indi.shuyu.wsitf.impl.ActivityProcessImpl"></bean>   
+	
+	<!-- the global static values -->
+	<bean id="initialization" class="indi.shuyu.initialization.GlobalStaticValues" scope="singleton"></bean> 
+	
+	<!-- other base helpers -->
+	<bean id="httpHelper" class="indi.shuyu.common.http.SpringHttpHelper" scope="singleton"></bean>  
+	
+	<!-- exception handlers -->
+	<bean id="exceptionResolver" class="indi.shuyu.system.exception.MappingExceptionResolver"></bean>  
+	
+	<!-- log dash object for a request, destroyed when ended！ -->
+	<bean id="logDash" class="indi.shuyu.system.logger.LogDash"></bean>  
+	
+</beans>

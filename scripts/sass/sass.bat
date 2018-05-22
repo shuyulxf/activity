@@ -1,0 +1,1 @@
+scss --watch G:\myworkspace\activity\src\main\webapp\static\scss:G:\myworkspace\activity\src\main\webapp\static\css --style compact

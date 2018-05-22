@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="60 seconds" debug="true">
+
+ 	<contextName>activity</contextName> 
+ 	<property name="PRONAME" value="activity" /> 
+ 	
+	<!-- <appender>，是负责写日志的组件。此处是写入控制台 -->
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+		<layout class="ch.qos.logback.classic.PatternLayout">
+			<pattern>[%X{sessionTokenId} %d{yyyy-MM-dd HH:mm:ss} %thread %-5level] %logger.%M\(%F:%L\) %X{LOGGER_ID} %msg%n</pattern>
+		</layout>
+	</appender>
+	
+	<!-- 此处是写入日志文件 -->
+	<appender name="ROLLINGFILE"  class="ch.qos.logback.core.rolling.RollingFileAppender">
+	      <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+	         <FileNamePattern>${catalina.base}/logs/${PRONAME}/${PRONAME}-log-%d{yyyy-MM-dd_HH}.log</FileNamePattern>
+	         <MaxHistory>720</MaxHistory>
+	      </rollingPolicy>
+	      <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+	         <pattern>[%X{sessionTokenId} %d{yyyy-MM-dd HH:mm:ss} %thread %-5level] %logger.%M\(%F:%L\) %X{LOGGER_ID} %msg%n</pattern>
+	      </encoder>
+	      
+	      <!-- max file size -->
+	      <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+	         <MaxFileSize>10MB</MaxFileSize>
+	      </triggeringPolicy>
+	</appender>
+	 
+	<!-- filter third dependency log info by lift the log level, can be WARN or OFF -->
+	<logger name="org.springframework" level="WARN"/>
+	<logger name="org.kie" level="WARN"/>
+	<logger name="org.drools" level="WARN"/>
+	<logger name="com.alibaba" level="WARN"/>
+	
+	<!-- project logger -->
+	<logger name="indi.shuyu" level="INFO" />
+	
+	
+	<!-- 规定把信息同时输入到控制台和文件里面 -->
+	<root level="INFO">
+		<appender-ref ref="STDOUT" />
+		<appender-ref ref="ROLLINGFILE" />
+	</root>
+</configuration>

@@ -1,0 +1,10 @@
+<config>
+	<context-values>
+		<resource path="">
+			<value key="HTML" object-class="org.apache.tools.ant.taskdefs.Javadoc$Html"/>
+		</resource>
+	</context-values>
+	<macro-library>
+		<entry namespace="header" path="src/main/webapp/views/header/header.ftl" project="activity" type="file"/>
+	</macro-library>
+</config>
