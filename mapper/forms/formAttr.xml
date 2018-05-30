@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="indi.shuyu.model.dao.FormAttrDao">
+ 
+ <resultMap id="FormAttrResultMap" type="indi.shuyu.model.entity.FormAttr" >
+    <id     column="formAttrInfoId"     property="formAttrInfoId"     javaType="long"   jdbcType="NUMERIC" />
+    <result column="formAttrName"       property="formAttrName"       javaType="String" jdbcType="VARCHAR" />
+    <result column="formAttrNameLabel"  property="formAttrNameLabel"  javaType="String" jdbcType="VARCHAR" />
+    <result column="formAttrNameDefaultValue"    property="formAttrNameDefaultValue"   javaType="String"    jdbcType="VARCHAR" />
+    <result column="formAttrNameValidation" property="formAttrNameValidation" javaType="String"    jdbcType="VARCHAR" />
+    <result column="formAttrNameType"       property="formAttrNameType"       javaType="String"    jdbcType="VARCHAR" />
+    <result column="formAttrNameFillType"   property="formAttrNameFillType"   javaType="String"    jdbcType="VARCHAR" />
+    <result column="ruleIds"                property="ruleIds"                javaType="String"    jdbcType="VARCHAR" />
+    <result column="exRuleGroupId"          property="exRuleGroupId"          javaType="long"      jdbcType="NUMERIC" />
+    <result column="formAttrIntroduce"      property="formAttrIntroduce"      javaType="String"    jdbcType="VARCHAR" />
+    <result column="formNameTypeAttrs"           property="formNameTypeAttrs"           javaType="String"    jdbcType="VARCHAR" />
+    <result column="orderForForm"           property="orderForForm"           javaType="int"    jdbcType="VARCHAR" />
+    <result column="exRuleGroupNameCN"      property="exRuleGroupNameCN"      javaType="String"    jdbcType="VARCHAR" />
+    <result column="hasReplyForFormAttr"    property="hasReplyForFormAttr"    javaType="int"       jdbcType="NUMERIC" />
+    <result column="createUser"    property="createUser"   javaType="String" jdbcType="VARCHAR" />
+    <result column="createTime"    property="createTime"   javaType="java.sql.Timestamp" jdbcType="TIMESTAMP"/>
+ </resultMap>
+ 
+ 
+ <sql id="FormAttrSelectByIdColumn" >
+   formAttrInfoId, formAttrName, orderForForm, formNameTypeAttrs, formAttrIntroduce, formAttrNameLabel, formAttrNameDefaultValue, formAttrNameValidation, formAttrNameType, formAttrNameFillType, ruleIds, exRuleGroupId, hasReplyForFormAttr, createUser, createTime
+ </sql>
+ <select id="selectFormAttrByFormId" resultType="indi.shuyu.model.entity.FormAttr" parameterType="indi.shuyu.model.entity.FormAttr">
+    select 
+    <include refid="FormAttrSelectByIdColumn" />
+    from ACTIVITY_FORM_ATTR_INFO
+    where formAttrInfoId = #{formAttrInfoId}
+ </select>
+ 
+ <select id="selectFormsAll" resultMap="FormAttrResultMap" parameterType="indi.shuyu.model.entity.FormAttr">
+    select 
+    <include refid="FormAttrSelectByIdColumn" />, exRuleGroupNameCN
+    from ACTIVITY_FORM_ATTR_INFO, (select ruleGroupNameCN as exRuleGroupNameCN,ruleGroupId from activity_rule_groups where isExclusive=1) exgroup
+    where ACTIVITY_FORM_ATTR_INFO.exRuleGroupId = exgroup.ruleGroupId
+    order by orderForForm asc, exRuleGroupId asc
+ </select>
+ 
+ <sql id="FormAttrUpdateColumn" >
+    formAttrInfoId, formAttrName, orderForForm, formNameTypeAttrs, formAttrIntroduce, formAttrNameLabel, formAttrNameDefaultValue, formAttrNameValidation, formAttrNameType, formAttrNameFillType, ruleIds, exRuleGroupId, hasReplyForFormAttr, createUser, createTime
+ </sql>
+ 
+ 
+ <insert id="insertFormAttr"  parameterType="indi.shuyu.model.entity.FormAttr">
+  	 <selectKey resultType="Long" order="BEFORE" keyProperty="formAttrInfoId">  
+         SELECT ACTIVITY_FORM_ATTR_INFO_SEQ.NEXTVAL as formAttrInfoId from DUAL
+     </selectKey>
+     insert into ACTIVITY_FORM_ATTR_INFO(
+     	<include refid="FormAttrUpdateColumn" />
+     ) 
+	 values(#{formAttrInfoId}, #{formAttrName}, #{orderForForm,jdbcType=NUMERIC}, #{formNameTypeAttrs, jdbcType=VARCHAR}, #{formAttrIntroduce,jdbcType=VARCHAR}, #{formAttrNameLabel}, #{formAttrNameDefaultValue, jdbcType=NUMERIC}, #{formAttrNameValidation, jdbcType=NUMERIC}, #{formAttrNameType},  #{formAttrNameFillType},  #{ruleIds},  #{exRuleGroupId, jdbcType=NUMERIC}, #{hasReplyForFormAttr, jdbcType=NUMERIC}, #{createUser},  #{createTime})
+ </insert>
+  
+ <update id="updateFormAttr" parameterType="indi.shuyu.model.entity.FormAttr">
+ 	update ACTIVITY_FORM_ATTR_INFO
+ 	<set>
+ 		<if test="formAttrName != null">formAttrName=#{formAttrName},</if>
+ 		<if test="formAttrNameLabel != null">formAttrNameLabel=#{formAttrNameLabel},</if>
+ 		<if test="formAttrNameType != null">formAttrNameType=#{formAttrNameType},</if>
+ 		<if test="formAttrNameFillType != null">formAttrNameFillType=#{formAttrNameFillType},</if>
+ 		<if test="hasReplyForFormAttr != null">hasReplyForFormAttr=#{hasReplyForFormAttr},</if>
+ 		<if test="ruleIds != null">ruleIds=#{ruleIds},</if>
+ 		<if test="exRuleGroupId != null">exRuleGroupId=#{exRuleGroupId},</if>
+ 		<if test="formAttrIntroduce != null">formAttrIntroduce=#{formAttrIntroduce},</if>
+ 		<if test="formNameTypeAttrs != null">formNameTypeAttrs=#{formNameTypeAttrs},</if>
+ 		<if test="orderForForm != null">orderForForm=#{orderForForm}</if>
+ 	</set>, formAttrNameDefaultValue=#{formAttrNameDefaultValue,jdbcType=VARCHAR}, formAttrNameValidation=#{formAttrNameValidation,jdbcType=VARCHAR}
+ 	where formAttrInfoId=#{formAttrInfoId}
+ </update>
+
+ <delete id="deleteFormAttrById">
+ 	 delete from ACTIVITY_FORM_ATTR_INFO where formAttrInfoId=#{arg0}
+ </delete>
+ 
+ 
+ <resultMap id="FormAttrResultMapForActivity" type="indi.shuyu.model.entity.FormAttr" >
+    <id     column="formAttrInfoId"     property="formAttrInfoId"     javaType="long"   jdbcType="NUMERIC" />
+    <result column="formAttrName"       property="formAttrName"       javaType="String" jdbcType="VARCHAR" />
+    <result column="formAttrNameLabel"  property="formAttrNameLabel"  javaType="String" jdbcType="VARCHAR" />
+    <result column="formAttrNameDefaultValue"    property="formAttrNameDefaultValue"   javaType="String"    jdbcType="VARCHAR" />
+    <result column="formAttrNameValidation" property="formAttrNameValidation" javaType="String"    jdbcType="VARCHAR" />
+    <result column="formAttrNameType"       property="formAttrNameType"       javaType="String"    jdbcType="VARCHAR" />
+    <result column="formAttrNameFillType"   property="formAttrNameFillType"   javaType="String"    jdbcType="VARCHAR" />
+    <result column="ruleIds"                property="ruleIds"                javaType="String"    jdbcType="VARCHAR" />
+    <result column="hasReplyForFormAttr"    property="hasReplyForFormAttr"    javaType="int"       jdbcType="NUMERIC" />
+    <result column="formAttrIntroduce"      property="formAttrIntroduce"      javaType="String"    jdbcType="VARCHAR" />
+    <result column="formNameTypeAttrs"      property="formNameTypeAttrs"        javaType="String"    jdbcType="VARCHAR" />
+    <result column="orderForForm"           property="orderForForm"           javaType="int"    jdbcType="VARCHAR" />
+	<result column="createUser"    property="createUser"   javaType="String" jdbcType="VARCHAR" />
+    <result column="createTime"    property="createTime"   javaType="java.sql.Timestamp" jdbcType="TIMESTAMP"/>
+ </resultMap>
+ <select id="selectFormAttrByType"	resultMap="FormAttrResultMapForActivity"  parameterType="indi.shuyu.model.entity.FormAttr">
+    select 
+    <include refid="FormAttrUpdateColumn" />
+    from ACTIVITY_FORM_ATTR_INFO
+    where formAttrNameType=#{arg0}
+    order by orderForForm asc
+ </select>
+ <update id="updateFormAttrRuleIds">
+ 	update ACTIVITY_FORM_ATTR_INFO
+ 	set ruleIds=ruleIds||','||#{arg0, jdbcType=VARCHAR}
+ 	where exRuleGroupId=#{arg1}
+ </update>
+ <update id="updateFormWhenDelRule"	>
+    update ACTIVITY_FORM_ATTR_INFO
+ 	set ruleids=REGEXP_REPLACE(ruleIds, ',?'||#{arg0}||',?','')
+    where regexp_like(ruleIds, '(^|,)'||#{arg0}||'($|,)')
+ </update>
+ </mapper>

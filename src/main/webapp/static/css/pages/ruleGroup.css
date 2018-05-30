@@ -1,0 +1,9 @@
+.rule-group .dropdown-toggle .btn-value { padding-right: 15px; padding-left: 15px; }
+.rule-group .dropdown-menu { min-width: 72px; }
+.rule-group .table td, .rule-group .table th { text-align: center; }
+.rule-group .table .icon-delete { padding-left: 20px; }
+.rule-group .iconfont { font-size: 14px; color: #ff5030; }
+
+#ruleGroupListModal { z-index: 5000; }
+
+/*# sourceMappingURL=ruleGroup.css.map */

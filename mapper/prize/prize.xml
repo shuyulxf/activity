@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="indi.shuyu.model.dao.PrizeDao">
+
+ <insert id="insertPrize">
+     insert into ACTIVITY_PRIZE(prizeName, createUser, createTime) values(#{arg0}, #{arg1}, #{arg2, jdbcType=TIMESTAMP})
+ </insert>
+ 
+ <resultMap id="PrizeResultMap" type="indi.shuyu.model.entity.Prize" >
+    <id     column="prizeId"     property="prizeId"     javaType="long"   jdbcType="NUMERIC" />
+    <result column="prizeName"   property="prizeName"   javaType="String" jdbcType="VARCHAR" />
+    <result column="createTime"      property="createTime"      javaType="java.sql.Timestamp" jdbcType="TIMESTAMP"/>
+    <result column="createUser"      property="createUser"      javaType="String" jdbcType="VARCHAR" />
+ </resultMap>
+ 
+ <sql id="PrizeColumn" >
+    prizeId, prizeName, createTime, createUser
+ </sql>
+ <select id="selectPrizeAll" parameterType="String" resultMap="PrizeResultMap">
+    select 
+    <include refid="PrizeColumn"  />
+    from ACTIVITY_PRIZE
+    order by createTime desc
+ </select>
+ <delete id="deletePrize">
+ 	 delete from ACTIVITY_PRIZE where prizeId=#{arg0}
+ </delete>
+
+ <select id="selectByPrizeId" resultType="indi.shuyu.model.entity.Prize" >
+    select 
+    <include refid="PrizeColumn" />
+    from ACTIVITY_PRIZE
+    where prizeId = #{arg0}
+ </select>
+ 
+ <update id="updatePrize">
+ 	update ACTIVITY_PRIZE
+ 	<set>
+ 		<if test="arg1 != null">prizeName=#{arg1},</if>
+ 	</set>
+ 	where prizeId=#{arg0}
+ </update>
+ 
+  <select id="selectPrizeListForUser" resultType="indi.shuyu.model.entity.Prize" >
+    select prizeId, prizeName
+    from ACTIVITY_PRIZE
+ </select>
+ 
+</mapper>

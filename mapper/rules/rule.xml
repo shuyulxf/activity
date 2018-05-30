@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="indi.shuyu.model.dao.RuleDao">
+ <resultMap id="ruleAttrResultMap" type="indi.shuyu.model.entity.Rule" >
+    <id     column="ruleId"          property="ruleId"         javaType="long"   jdbcType="NUMERIC" />
+    <result column="ruleNameCN"      property="ruleNameCN"     javaType="String" jdbcType="VARCHAR" />
+    <result column="ruleNameEN"      property="ruleNameEN"     javaType="String" jdbcType="VARCHAR" />
+    <result column="exRuleGroupId"   property="exRuleGroupId"  javaType="long"   jdbcType="NUMERIC" />
+    <result column="ruleGroupId"     property="ruleGroupId"    javaType="long"   jdbcType="NUMERIC" />
+    <result column="exRuleGroupNameCN"   property="exRuleGroupNameCN"  javaType="String"   jdbcType="VARCHAR" />
+    <result column="ruleGroupNameCN"      property="ruleGroupNameCN"    javaType="String"   jdbcType="VARCHAR" />
+    <result column="ruleWeight"    property="ruleWeight"   javaType="int"    jdbcType="NUMERIC" />
+    <result column="functions"     property="functions"    javaType = "java.lang.String" jdbcType="VARCHAR"/>
+    <result column="rule"          property="rule"         javaType = "java.lang.String" jdbcType="VARCHAR"/>
+    <result column="createUser"    property="createUser"   javaType="String" jdbcType="VARCHAR" />
+    <result column="createTime"    property="createTime"   javaType="java.sql.Timestamp" jdbcType="TIMESTAMP"/>
+ </resultMap>
+ 
+ <sql id="RuleColumn" >
+     ruleId, ruleNameCN, ruleNameEN, ruleGroupId, exRuleGroupId, functions, rule, ruleWeight, createUser, createTime
+ </sql>
+ 
+ <insert id="insertRule" parameterType="indi.shuyu.model.entity.Rule"> 
+ 	 <selectKey resultType="Long" order="BEFORE" keyProperty="ruleId">  
+         SELECT ACTIVITY_RULES_SEQ.NEXTVAL as ruleId from DUAL
+     </selectKey>
+     insert into ACTIVITY_RULES(
+      <include refid="RuleColumn" />
+     ) 
+	 values(#{ruleId, jdbcType=NUMERIC}, #{ruleNameCN}, #{ruleNameEN}, #{ruleGroupId, jdbcType=NUMERIC}, #{exRuleGroupId, jdbcType=NUMERIC}, #{functions, jdbcType=CLOB}, #{rule, jdbcType=CLOB}, #{ruleWeight, jdbcType=NUMERIC},  #{createUser, jdbcType=TIMESTAMP},  #{createTime})
+ </insert>
+ 
+ <update id="updateRule" parameterType="indi.shuyu.model.entity.Rule">
+ 	update ACTIVITY_RULES
+ 	<set>
+ 		<if test="ruleNameEN != null">ruleNameEN=#{ruleNameEN},</if>
+ 		<if test="ruleNameCN != null">ruleNameCN=#{ruleNameCN},</if>
+ 		<if test="ruleGroupId != null">ruleGroupId=#{ruleGroupId},</if>
+ 		<if test="rule != null">rule=#{rule},</if>
+ 		<if test="ruleWeight != null">ruleWeight=#{ruleWeight},</if>
+ 		<if test="exRuleGroupId != null">exRuleGroupId=#{exRuleGroupId},</if>
+ 		functions=#{functions}
+ 	</set>
+ 	where ruleId=#{ruleId}
+ </update>
+ <delete id="deleteRuleById">
+ 	 delete from ACTIVITY_RULES where ruleId=#{arg0}
+ </delete>
+ 
+ <sql id="RuleListColumn" >
+     ruleId, ruleNameCN, ruleNameEN, ACTIVITY_RULES.ruleGroupId, exRuleGroupId, functions, rule, ruleWeight, ACTIVITY_RULES.createUser, ACTIVITY_RULES.createTime, 
+     groups.ruleGroupNameCN as ruleGroupNameCN, groups.ruleGroupNameEN as ruleGroupNameEN, exgroups.ruleGroupNameCN as exRuleGroupNameCN, exgroups.ruleGroupNameEN as exRuleGroupNameEN
+     , groups.isCommonGroup as isCommonGroup
+ </sql>
+ <select id="selectRuleAll" resultMap="ruleAttrResultMap">
+    select 
+    <include refid="RuleListColumn" />
+    from ACTIVITY_RULES, 
+    	 (SELECT * from ACTIVITY_RULE_GROUPS where isExclusive=0) groups, 
+    	 (SELECT * from ACTIVITY_RULE_GROUPS where isExclusive=1) exgroups
+    where ACTIVITY_RULES.ruleGroupId=groups.ruleGroupId and 
+          ACTIVITY_RULES.exruleGroupId=exgroups.ruleGroupId
+    order by exRuleGroupId asc
+ </select>
+ <sql id="RuleNoExGroupListColumn" >
+     ruleId, ruleNameCN, ruleNameEN, ACTIVITY_RULES.ruleGroupId, exRuleGroupId, functions, rule, ruleWeight, ACTIVITY_RULES.createUser, ACTIVITY_RULES.createTime, 
+     groups.ruleGroupNameCN as ruleGroupNameCN, groups.ruleGroupNameEN as ruleGroupNameEN, groups.isCommonGroup as isCommonGroup
+ </sql>
+ <select id="selectRuleExGroupNullAll" resultMap="ruleAttrResultMap" >
+    select 
+    <include refid="RuleNoExGroupListColumn" />
+    from ACTIVITY_RULES, 
+    	 (SELECT * from ACTIVITY_RULE_GROUPS where isExclusive=0) groups
+    where ACTIVITY_RULES.ruleGroupId=groups.ruleGroupId
+          and ACTIVITY_RULES.exRuleGroupId is null
+ </select>
+ <select id="selectRuleByRuleId" resultType="indi.shuyu.model.entity.Rule" >
+    select 
+    <include refid="RuleColumn" />
+    from ACTIVITY_RULES
+    where ACTIVITY_RULES.ruleId = #{arg0, jdbcType=NUMERIC} 
+ </select>
+ 
+ <select id="selectRuleIdsByGroupId" resultType="long" >
+    select ruleId
+    from ACTIVITY_RULES
+    where exRuleGroupId = #{arg0}
+ </select>
+ 
+ <!-- select rules for activity-->
+ <resultMap id="ruleAndGroupForActivityResultMap" type="indi.shuyu.model.entity.Rule" >
+    <result column="ruleNameEN"      property="ruleNameEN"     javaType="String" jdbcType="VARCHAR" />
+    <result column="ruleGroupNameEN"     property="ruleGroupNameEN"  javaType="String"     jdbcType="VARCHAR" />
+    <result column="exRuleGroupNameEN"     property="exRuleGroupNameEN"  javaType="String"     jdbcType="VARCHAR" />
+    <result column="isCommonGroup"     property="isCommonGroup"  javaType="int"     jdbcType="NUMERIC" />
+    <result column="ruleGroupWeight"    property="ruleGroupWeight"   javaType="int"    jdbcType="NUMERIC" />
+    <result column="ruleWeight"    property="ruleWeight"   javaType="int"    jdbcType="NUMERIC" />
+    <result column="functions"     property="functions"    javaType = "java.lang.String" jdbcType="VARCHAR"/>
+    <result column="rule"          property="rule"         javaType = "java.lang.String" jdbcType="VARCHAR"/>
+ </resultMap>
+ <sql id="RuleAndGroupForActivityColumn" >
+     ruleNameEN, exGroups.ruleGroupNameEN as exRuleGroupNameEN, groups.ruleGroupWeight as ruleGroupWeight, 
+     groups.ruleGroupNameEN as ruleGroupNameEN, groups.isCommonGroup as isCommonGroup, ruleWeight, functions, rule
+ </sql>
+ <select id="selectRuleAndGroupForActivity" resultMap="ruleAndGroupForActivityResultMap" >
+    select  
+    <include refid="RuleAndGroupForActivityColumn" />
+    from ACTIVITY_RULES,  
+        (SELECT * from ACTIVITY_RULE_GROUPS where isExclusive=0) groups,
+        (SELECT * from ACTIVITY_RULE_GROUPS where isExclusive=1) exGroups
+    where groups.ruleGroupId=ACTIVITY_RULES.ruleGroupId and exGroups.ruleGroupId=ACTIVITY_RULES.exRuleGroupId
+          and 
+          <foreach collection="array" item="ruleId" open="(" close=")" separator="or">
+          	ruleId = #{ruleId}
+          </foreach>
+ </select>
+ 
+  <select id="selectRulesByExacuteProcess" resultMap="ruleAndGroupForActivityResultMap" >
+    select  
+    <include refid="RuleAndGroupForActivityColumn" />
+    from ACTIVITY_RULES,  
+        (SELECT * from ACTIVITY_RULE_GROUPS where isExclusive=0) groups,
+        (SELECT * from ACTIVITY_RULE_GROUPS where isExclusive=1) exGroups
+    where groups.ruleGroupId=ACTIVITY_RULES.ruleGroupId and exGroups.ruleGroupId=ACTIVITY_RULES.exRuleGroupId
+          and groups.isCommonGroup = #{arg0}
+          order by ruleWeight asc
+ </select>
+ <select id="selectRulesByExGroupId" resultType="String">
+    select  
+    ruleId
+    from ACTIVITY_RULES
+    where exRuleGroupId=#{exRuleGroupId}
+ </select>
+ 
+</mapper>

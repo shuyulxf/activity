@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="indi.shuyu.model.dao.RuleGroupDao">
+
+ <sql id="RuleGroupColumn" >
+     ruleGroupNameCN, ruleGroupNameEN, ruleGroupWeight, isExclusive, isCommonGroup, createTime, createUser
+ </sql>
+
+ <insert id="insertRuleGroup" parameterType="indi.shuyu.model.entity.RuleGroup">
+     insert into ACTIVITY_RULE_GROUPS
+     (<include refid="RuleGroupColumn"  />) 
+     values(#{ruleGroupNameCN}, #{ruleGroupNameEN}, #{ruleGroupWeight}, #{isExclusive}, #{isCommonGroup}, #{createTime, jdbcType=TIMESTAMP}, #{createUser})
+ </insert>
+ 
+ <resultMap id="RuleGroupResultMap" type="indi.shuyu.model.entity.RuleGroup" >
+    <id     column="ruleGroupId"     property="ruleGroupId"     javaType="long"   jdbcType="NUMERIC" />
+    <result column="ruleGroupNameCN"   property="ruleGroupNameCN"   javaType="String" jdbcType="VARCHAR" />
+    <result column="ruleGroupNameEN"   property="ruleGroupNameEN"   javaType="String" jdbcType="VARCHAR" />
+    <result column="ruleGroupWeight" property="ruleGroupWeight" javaType="int"    jdbcType="NUMERIC" />
+    <result column="isExclusive"     property="isExclusive"     javaType="int"    jdbcType="NUMERIC" />
+    <result column="isCommonGroup"   property="isCommonGroup"     javaType="int"    jdbcType="NUMERIC" />
+    <result column="createTime"      property="createTime"      javaType="java.sql.Timestamp" jdbcType="TIMESTAMP"/>
+    <result column="createUser"      property="createUser"      javaType="String" jdbcType="VARCHAR" />
+ </resultMap>
+ 
+ <select id="selectRuleGroupAll" resultMap="RuleGroupResultMap">
+    select 
+    ruleGroupId, <include refid="RuleGroupColumn"  />
+    from ACTIVITY_RULE_GROUPS
+    order by createTime desc
+ </select>
+ 
+ <delete id="deleteRuleGroup">
+ 	 delete from ACTIVITY_RULE_GROUPS where ruleGroupId=#{arg0}
+ </delete>
+
+ <select id="selectByGroupId" resultType="indi.shuyu.model.entity.RuleGroup" >
+    select 
+     ruleGroupId, <include refid="RuleGroupColumn" />
+    from ACTIVITY_RULE_GROUPS
+    where ruleGroupId = #{arg0}
+ </select>
+ 
+ <update id="updateRuleGroup" parameterType="indi.shuyu.model.entity.RuleGroup">
+ 	update ACTIVITY_RULE_GROUPS
+ 	<set>
+ 		<if test="ruleGroupNameCN != null">ruleGroupNameCN=#{ruleGroupNameCN},</if>
+ 		<if test="ruleGroupNameEN != null">ruleGroupNameEN=#{ruleGroupNameEN},</if>
+ 		<if test="ruleGroupWeight != null">ruleGroupWeight=#{ruleGroupWeight},</if>
+ 		<if test="isCommonGroup != null">isCommonGroup=#{isCommonGroup}</if>
+ 	</set>,isExclusive=#{isExclusive, jdbcType=VARCHAR}
+ 	where ruleGroupId=#{ruleGroupId}
+ </update>
+ 
+ <select id="selectGroupNameList" resultType="string" >
+    select 
+    ruleGroupNameEN
+    from ACTIVITY_RULE_GROUPS
+    where isCommonGroup = 0 and isExclusive = 0
+    order by ruleGroupWeight desc
+ </select>
+</mapper>

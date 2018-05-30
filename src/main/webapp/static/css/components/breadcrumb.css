@@ -1,0 +1,8 @@
+.breadcrumb-wrap { display: inline-block; color: #666; }
+.breadcrumb-wrap .breadcrumb { margin-bottom: 0; display: inline-block; padding-left: 5px; }
+.breadcrumb-wrap .breadcrumb a { color: #666; }
+.breadcrumb-wrap .breadcrumb a:hover { text-decoration: none; color: rgba(255, 80, 48, 0.8); text-shadow: 0 0 1px; }
+.breadcrumb-wrap .breadcrumb .active { color: rgba(255, 80, 48, 0.8); }
+.breadcrumb-wrap .icon-dingwei1 { vertical-align: top; color: #ff5030; text-shadow: 0 0 1px; margin-right: 3px; }
+
+/*# sourceMappingURL=breadcrumb.css.map */

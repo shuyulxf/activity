@@ -1,0 +1,1556 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="indi.shuyu.model.dao.UserDao">
+
+ <sql id="userSearchColumn" >
+     searchId, phoneNumber, province, city, applyCode, QUERY, createTime
+ </sql>
+ 
+ <insert id="insertSearchUser" parameterType="indi.shuyu.model.entity.User"> 
+ 	 <selectKey resultType="Long" order="BEFORE" keyProperty="searchId">  
+         SELECT USER_SEARCH_ACTIVITY_INFO_SEQ.NEXTVAL as searchId from DUAL
+     </selectKey>
+     insert into USER_SEARCH_ACTIVITY_INFO(
+      <include refid="userSearchColumn" />
+     ) 
+	 values(#{searchId}, #{phoneNumber}, #{province, jdbcType=VARCHAR}, #{city, jdbcType=VARCHAR}, #{applyCode, jdbcType=VARCHAR}, #{query, jdbcType=VARCHAR}, #{createTime})
+ </insert>
+ 
+ <sql id="userJoinColumn" >
+     recordId, searchId, isFinished, replyInfo, activityName
+ </sql>
+ <insert id="insertUserJoinInfo" parameterType="indi.shuyu.model.entity.User"> 
+ 	 <selectKey resultType="Long" order="BEFORE" keyProperty="recordId">  
+         SELECT USER_JOIN_ACTIVITY_INFO_SEQ.NEXTVAL as recordId from DUAL
+     </selectKey>
+     insert into USER_JOIN_ACTIVITY_INFO(
+      <include refid="userJoinColumn" />
+     ) 
+	 values(#{recordId}, #{searchId}, #{isFinished, jdbcType=NUMERIC}, #{replyInfo, jdbcType=VARCHAR}, #{activityName, jdbcType=VARCHAR})
+ </insert>
+ 
+ <sql id="userAwardColumn" >
+     recordId, awardType, numberForAward, replyInfForAward, isSeriesAwardForJoinActivity, earnTime
+ </sql>
+ <insert id="insertUserAwardInfo" parameterType="indi.shuyu.model.entity.User"> 
+     insert into USER_EARN_AWARD_INFO(
+      <include refid="userAwardColumn" />
+     ) 
+	 values(#{recordId}, #{awardType, jdbcType=VARCHAR}, #{numberForAward, jdbcType=NUMERIC}, #{replyInfForAward, jdbcType=NUMERIC}, #{isSeriesAwardForJoinActivity, jdbcType=NUMERIC}, #{earnTime})
+ </insert>
+ 
+  <resultMap id="awardHistoryMap" type="indi.shuyu.model.entity.User" >
+  	<id     column="awardInfoId"     property="awardInfoId"     javaType="long"    jdbcType="NUMERIC" />
+  	<result column="awardType"       property="awardType"       javaType="String"   jdbcType="VARCHAR" />
+ 	<result column="awardType"       property="awardType"       javaType="String"   jdbcType="VARCHAR" />
+    <result column="numberForAward"  property="numberForAward"  javaType="int"     jdbcType="VARCHAR" />
+    <result column="earnTime"        property="earnTime"        javaType="java.sql.Timestamp" jdbcType="TIMESTAMP"/>
+    <result column="replyInfForAward"       property="replyInfForAward"        javaType="String" jdbcType="VARCHAR"/>
+    <result column="isSeriesAwardForJoinActivity"  property="isSeriesAwardForJoinActivity"    javaType="int" jdbcType="NUMERIC" />
+  </resultMap>
+  <sql id="awardHistoryColumn" >
+     awardInfoId, uea.recordId, awardType, numberForAward, isSeriesAwardForJoinActivity, earnTime
+  </sql>
+  <select id="selectAwardHistory" resultMap="awardHistoryMap">
+    select 
+    <include refid="awardHistoryColumn" />
+    from USER_SEARCH_ACTIVITY_INFO usa, USER_JOIN_ACTIVITY_INFO uja, USER_EARN_AWARD_INFO uea
+    where phoneNumber=#{arg0} and 
+    	  activityName = #{arg1} and
+    	  uja.recordId = uea.recordId and
+    	  usa.searchId = uja.searchId 
+ </select>
+ 
+ <select id="selectFinishNumForUser" resultType="int">
+    select count(recordId)
+    from USER_SEARCH_ACTIVITY_INFO usa, USER_JOIN_ACTIVITY_INFO uja
+    where phoneNumber=#{arg0} and 
+    	  activityName = #{arg1} and
+    	  isFinished = 1 and
+    	  usa.searchId = uja.searchId
+ </select>
+ 
+ <select id="selectFinishNumPerDayForUser" resultType="int">
+    select count(recordId)
+    from USER_SEARCH_ACTIVITY_INFO usa, USER_JOIN_ACTIVITY_INFO uja
+    where phoneNumber=#{arg0} and 
+    	  activityName = #{arg1} and 
+    	  isFinished = 1 and
+    	  createTime <![CDATA[>=]]> trunc(sysdate) and createTime <![CDATA[<]]>  trunc(sysdate)+1 and
+    	  usa.searchId = uja.searchId 
+ </select>
+ 
+ <select id="selectFinishNumPerWeekForUser" resultType="int">
+    select count(recordId)
+    from USER_SEARCH_ACTIVITY_INFO usa, USER_JOIN_ACTIVITY_INFO uja
+    where phoneNumber=#{arg0} and
+     	  activityName = #{arg1} and 
+     	  isFinished = 1 and
+    	  createTime <![CDATA[>=]]> trunc(sysdate, 'iw') and createTime <![CDATA[<]]> sysdate and
+    	  usa.searchId = uja.searchId
+ </select>
+ 
+ <select id="selectFinishNumPerMonthForUser" resultType="int">
+    select count(recordId)
+    from USER_SEARCH_ACTIVITY_INFO usa, USER_JOIN_ACTIVITY_INFO uja
+    where phoneNumber=#{arg0} and
+     	  activityName = #{arg1} and 
+    	  isFinished = 1 and
+    	  createTime <![CDATA[>=]]> trunc(sysdate, 'mm') and createTime <![CDATA[<]]> sysdate and
+    	  usa.searchId = uja.searchId 
+ </select>
+ 
+
+ 
+ <select id="selectEarnAwardNumPerDayForUser" resultType="int">
+    select count(awardInfoId)
+    from USER_SEARCH_ACTIVITY_INFO usa, USER_JOIN_ACTIVITY_INFO uja, USER_EARN_AWARD_INFO uea
+    where phoneNumber=#{arg0} and 
+          activityName = #{arg1} and 
+          isSeriesAwardForJoinActivity = 0 and
+    	  earnTime <![CDATA[>=]]> trunc(sysdate) and earnTime <![CDATA[<]]>  trunc(sysdate)+1 and
+    	  uja.recordId = uea.recordId and 
+    	  usa.searchId = uja.searchId 
+ </select>
+ 
+ <select id="selectEarnAwardNumPerWeekForUser" resultType="int">
+  	select count(awardInfoId)
+    from USER_SEARCH_ACTIVITY_INFO usa, USER_JOIN_ACTIVITY_INFO uja, USER_EARN_AWARD_INFO uea
+    where phoneNumber = #{arg0} and 
+          activityName = #{arg1} and 
+          isSeriesAwardForJoinActivity = 0 and
+    	  earnTime <![CDATA[>=]]> trunc(sysdate, 'iw') and earnTime <![CDATA[<]]> sysdate and
+    	  uja.recordId = uea.recordId and 
+    	  usa.searchId = uja.searchId
+ </select>
+ 
+ <select id="selectEarnAwardNumPerMonthForUser" resultType="int">
+    select count(awardInfoId)
+    from USER_SEARCH_ACTIVITY_INFO usa, USER_JOIN_ACTIVITY_INFO uja, USER_EARN_AWARD_INFO uea
+    where phoneNumber=#{arg0} and 
+          activityName = #{arg1} and 
+          isSeriesAwardForJoinActivity=0 and
+    	  earnTime <![CDATA[>=]]> trunc(sysdate, 'mm') and earnTime <![CDATA[<]]> sysdate and
+          uja.recordId = uea.recordId and 
+    	  usa.searchId = uja.searchId 
+ </select> 
+ <select id="selectEarnAwardNumTotalForUser" resultType="int">
+    select count(awardInfoId)
+    from USER_SEARCH_ACTIVITY_INFO usa, USER_JOIN_ACTIVITY_INFO uja, USER_EARN_AWARD_INFO uea
+    where phoneNumber=#{arg0} and 
+          activityName = #{arg1} and 
+          isSeriesAwardForJoinActivity = 0 and
+    	  uja.recordId = uea.recordId and 
+    	  usa.searchId = uja.searchId 
+ </select>
+
+
+  <select id="selectTotalFinishJoinUserNumByActivityName" resultType="java.util.HashMap">
+    select activityName as "activityName", count(recordId) as "count"
+    from USER_SEARCH_ACTIVITY_INFO usa, USER_JOIN_ACTIVITY_INFO uja
+    where 
+   		<foreach collection="list" item="l" open="(" close=")" separator="or">
+      	 activityName = #{l}
+        </foreach>
+         and isFinished = 1
+   	     and usa.searchId = uja.searchId
+   	     group by activityName
+  </select>
+  
+  <select id="selectTotalAwardUserNumByActivityName" resultType="java.util.HashMap">
+    select activityName as "activityName", count(awardInfoId) as "count"
+    from USER_SEARCH_ACTIVITY_INFO usa, USER_JOIN_ACTIVITY_INFO uja, USER_EARN_AWARD_INFO uea 
+    where 
+   		<foreach collection="list" item="l" open="(" close=")" separator="or">
+      	 activityName = #{l}
+        </foreach>
+         and isFinished = 1
+   	     and uja.recordId = uea.recordId
+   	     and usa.searchId = uja.searchId
+   	     group by activityName
+  </select>
+  
+  <select id="selectTotalSeriesAwardNumForUser" resultType="int">
+   select count(*) as count from (  
+	  select * from (  
+	    select distinct phoneNumber,TO_DATE(TO_CHAR(earnTime, 'YYYY-MM-DD'),'YYYY-MM-DD') earnTime 
+	    from USER_EARN_AWARD_INFO uea, USER_JOIN_ACTIVITY_INFO uja, USER_SEARCH_ACTIVITY_INFO usa
+	    where activityName = #{arg1, jdbcType=VARCHAR} and
+	          phoneNumber = #{arg0, jdbcType=VARCHAR} and
+	          isSeriesAwardForJoinActivity = 0 and
+	          uea.RECORDID = uja.RECORDID and 
+	    	  usa.SEARCHID = uja.SEARCHID
+	  ) a   
+	  start with TO_CHAR((Sysdate), 'YYYY-MM-DD') = TO_CHAR(a.earnTime, 'YYYY-MM-DD')   
+	  connect by prior TO_CHAR((a.earnTime-1), 'YYYY-MM-DD') = TO_CHAR(a.earnTime, 'YYYY-MM-DD')  
+	) 
+  </select>
+  
+  <select id="ifExistCurSeriesAward" resultType="int">
+   select count(*)
+	    from USER_EARN_AWARD_INFO uea, USER_JOIN_ACTIVITY_INFO uja, USER_SEARCH_ACTIVITY_INFO usa
+	    where activityName = #{arg1, jdbcType=VARCHAR} and
+	          phoneNumber = #{arg0, jdbcType=VARCHAR} and
+	          isSeriesAwardForJoinActivity = 1 and
+	          trunc(earnTime) = trunc(sysdate) and
+	          uea.RECORDID = uja.RECORDID and 
+	    	  usa.SEARCHID = uja.SEARCHID
+  </select>
+  
+  <sql id="userEarnAwardAttrs" >
+     phoneNumber, province, applyCode, awardType, isSeriesAwardForJoinActivity, earnTime, numberForAward
+  </sql>
+  <select id="selectTotalNumUserEarnAward" resultType="int"  parameterType="indi.shuyu.model.entity.Search">
+    select count(AWARDINFOID)
+    from USER_EARN_AWARD_INFO uea, USER_JOIN_ACTIVITY_INFO uja, USER_SEARCH_ACTIVITY_INFO usa, ACTIVITY_ATTRIBUTES aa
+    where 1=1
+    	  <if test="activityIds != null"> 
+    	      and (
+	          <foreach collection="activityIds" item="activityId" open="(" close=")" separator="or">
+	          	aa.activityId=#{activityId, jdbcType=NseUMERIC}
+	          </foreach>
+	          )
+    	  </if>
+    	  <if test="phoneNumbers != null"> 
+    	      and (
+	          <foreach collection="phoneNumbers" item="phoneNumber" open="(" close=")" separator="or">
+	          	phoneNumber like '%'||#{phoneNumber, jdbcType=VARCHAR}||'%'
+	          </foreach>
+	          )
+    	  </if>
+    	  <if test="createUser != null"> and createUser=#{createUser}</if>
+    	  <if test="activityProvince != null and activityProvince.length != 0">
+    	      and (
+	          <foreach collection="activityProvince" item="province" open="(" close=")" separator="or">
+	          	 usa.province like '%'||#{province}||'%'
+	          </foreach>
+	          )
+	      </if>
+          <if test="activityApplyCode != null and activityApplyCode.length != 0">
+    	      and (
+	          <foreach collection="activityApplyCode" item="applyCode" open="(" close=")" separator="or">
+	          	regexp_like(activityApplyCode, '(^|,)'||#{applyCode}||'($|,)')
+	          </foreach>
+	          )
+	      </if>
+	      <if test="startTime != null"> and earnTime<![CDATA[>=]]>#{startTime, jdbcType=TIMESTAMP}</if>
+	      <if test="endTime != null"> and earnTime<![CDATA[<]]>#{endTime, jdbcType=TIMESTAMP}</if>
+	       and aa.activityName = uja.activityName
+           and uea.RECORDID = uja.RECORDID  
+    	   and usa.SEARCHID = uja.SEARCHID
+  </select>
+  <select id="selectUserEarnAwardList" resultType="indi.shuyu.model.entity.Data"  parameterType="indi.shuyu.model.entity.Search">
+    select  <include refid="userEarnAwardAttrs" />,activityName, activityId
+    from  (select a.*, rownum rnum from (
+    select  <include refid="userEarnAwardAttrs" />, aa.activityName as activityName, aa.activityId as activityId
+    from USER_EARN_AWARD_INFO uea, USER_JOIN_ACTIVITY_INFO uja, USER_SEARCH_ACTIVITY_INFO usa, ACTIVITY_ATTRIBUTES aa
+    where 1=1
+    	  <if test="activityIds != null"> 
+    	      and (
+	          <foreach collection="activityIds" item="activityId" open="(" close=")" separator="or">
+	          	aa.activityId=#{activityId, jdbcType=NUMERIC}
+	          </foreach>
+	          )
+    	  </if>
+    	  <if test="phoneNumbers != null"> 
+    	      and (
+	          <foreach collection="phoneNumbers" item="phoneNumber" open="(" close=")" separator="or">
+	          	phoneNumber like '%'||#{phoneNumber, jdbcType=VARCHAR}||'%'
+	          </foreach>
+	          )
+    	  </if>
+    	  <if test="createUser != null"> and createUser=#{createUser}</if>
+    	  <if test="activityProvince != null and activityProvince.length != 0">
+    	      and (
+	          <foreach collection="activityProvince" item="province" open="(" close=")" separator="or">
+	          	 usa.province like '%'||#{province}||'%'
+	          </foreach>
+	          )
+	      </if>
+          <if test="activityApplyCode != null and activityApplyCode.length != 0">
+    	      and (
+	          <foreach collection="activityApplyCode" item="applyCode" open="(" close=")" separator="or">
+	          	regexp_like(activityApplyCode, '(^|,)'||#{applyCode}||'($|,)')
+	          </foreach>
+	          )
+	      </if>
+	      <if test="startTime != null"> and earnTime<![CDATA[>=]]>#{startTime, jdbcType=TIMESTAMP}</if>
+	      <if test="endTime != null"> and earnTime<![CDATA[<]]>#{endTime, jdbcType=TIMESTAMP}</if>
+	       and aa.activityName = uja.activityName
+           and uea.RECORDID = uja.RECORDID  
+    	   and usa.SEARCHID = uja.SEARCHID
+    ) a)
+    where rnum<![CDATA[>]]>#{start} and rnum<![CDATA[<=]]>#{end}
+    order by earnTime desc
+  </select>
+  
+  <select id="selectTotalNumForStatisticInActivityDimension" resultType="long"  parameterType="indi.shuyu.model.entity.Search">
+    select  count(c.province)
+	   from (
+		   select e.activityName as activityName, joinUserNum, disJoinUserNum, awardUserNum
+	            <choose>
+			        <when test="activityProvince != null and activityProvince.length != 0">
+			           ,  d.province as province
+			        </when>
+			        <otherwise>
+			            , activityprovince as province
+			        </otherwise>
+			     </choose>
+			     <choose>
+			        <when test="activityApplyCode != null and activityApplyCode.length != 0">
+			          ,  d.applyCode as applyCode
+			        </when>
+			        <otherwise>
+			            , activityapplycode as applyCode
+			        </otherwise>
+			    </choose>
+    	  from (select   a.activityName as activityName, 
+    	    		<if test="activityProvince != null and activityProvince.length != 0">
+    	   			a.province as province, 
+    	   			</if>
+    	   			<if test="activityApplyCode != null and activityApplyCode.length != 0">
+    	   			a.applycode as applycode, 
+    	   			</if>
+    	   			joinUserNum, disJoinUserNum, awardUserNum
+		   from (
+			   select count(phoneNumber) as joinUserNum, count(distinct phoneNumber) as disJoinUserNum, uja.activityName as activityName
+			   		  <if test="activityProvince != null and activityProvince.length != 0">
+			   		  , usa.province as province
+			   		  </if>
+			   		  <if test="activityApplyCode != null and activityApplyCode.length != 0">
+			   		  , usa.applycode as applyCode 
+			   		  </if>
+			   from USER_JOIN_ACTIVITY_INFO uja, USER_SEARCH_ACTIVITY_INFO usa, ACTIVITY_ATTRIBUTES aa
+	           where  1=1
+			    	  <if test="activityIds != null"> 
+			    	      and (
+				          <foreach collection="activityIds" item="activityId" open="(" close=")" separator="or">
+				          	aa.activityId=#{activityId, jdbcType=NUMERIC}
+				          </foreach>
+				          )
+			    	  </if>
+			    	  <if test="phoneNumbers != null"> 
+			    	      and (
+				          <foreach collection="phoneNumbers" item="phoneNumber" open="(" close=")" separator="or">
+				          	phoneNumber like '%'||#{phoneNumber, jdbcType=VARCHAR}||'%'
+				          </foreach>
+				          )
+			    	  </if>
+			    	  <if test="createUser != null"> and createUser=#{createUser}</if>
+			    	  <if test="activityProvince != null and activityProvince.length != 0">
+			    	      and (
+				          <foreach collection="activityProvince" item="province" open="(" close=")" separator="or">
+				          	 usa.province like '%'||#{province}||'%'
+				          </foreach>
+				          )
+				      </if>
+			          <if test="activityApplyCode != null and activityApplyCode.length != 0">
+			    	      and (
+				          <foreach collection="activityApplyCode" item="applyCode" open="(" close=")" separator="or">
+				          	regexp_like(activityApplyCode, '(^|,)'||#{applyCode}||'($|,)')
+				          </foreach>
+				          )
+				      </if>
+				      <if test="startTime != null"> and usa.createTime<![CDATA[>=]]>#{startTime, jdbcType=TIMESTAMP}</if>
+				      <if test="endTime != null"> and usa.createTime<![CDATA[<]]>#{endTime, jdbcType=TIMESTAMP}</if>
+				      and aa.activityName = uja.activityName
+	                  and usa.SEARCHID = uja.SEARCHID
+	                  group by uja.activityName 
+	                   	    <if test="activityProvince != null and activityProvince.length != 0">
+	                  		, usa.province
+	                  		</if>
+	                  		<if test="activityApplyCode != null and activityApplyCode.length != 0">
+	                  		, usa.applycode
+	                  		</if>
+           ) a left join
+           (select count(AWARDINFOID) as awardUserNum, uja.activityName
+            		<if test="activityProvince != null and activityProvince.length != 0">
+           			, usa.province
+           			</if>
+           			<if test="activityApplyCode != null and activityApplyCode.length != 0">
+           			, usa.applycode 
+           			</if>
+            from USER_JOIN_ACTIVITY_INFO uja, USER_SEARCH_ACTIVITY_INFO usa, USER_EARN_AWARD_INFO uea, ACTIVITY_ATTRIBUTES aa
+            where 1=1
+		    	  <if test="activityIds != null"> 
+		    	      and (
+			          <foreach collection="activityIds" item="activityId" open="(" close=")" separator="or">
+			          	aa.activityId=#{activityId, jdbcType=NUMERIC}
+			          </foreach>
+			          )
+		    	  </if>
+		    	  <if test="phoneNumbers != null"> 
+		    	      and (
+			          <foreach collection="phoneNumbers" item="phoneNumber" open="(" close=")" separator="or">
+			          	phoneNumber like '%'||#{phoneNumber, jdbcType=VARCHAR}||'%'
+			          </foreach>
+			          )
+		    	  </if>
+		    	  <if test="createUser != null"> and createUser=#{createUser}</if>
+		    	  <if test="activityProvince != null and activityProvince.length != 0">
+		    	      and (
+			          <foreach collection="activityProvince" item="province" open="(" close=")" separator="or">
+			          	 usa.province like '%'||#{province}||'%'
+			          </foreach>
+			          )
+			      </if>
+		          <if test="activityApplyCode != null and activityApplyCode.length != 0">
+		    	      and (
+			          <foreach collection="activityApplyCode" item="applyCode" open="(" close=")" separator="or">
+			          	regexp_like(activityApplyCode, '(^|,)'||#{applyCode}||'($|,)')
+			          </foreach>
+			          )
+			      </if>
+			      <if test="startTime != null"> and earnTime<![CDATA[>=]]>#{startTime, jdbcType=TIMESTAMP}</if>
+			      <if test="endTime != null"> and earnTime<![CDATA[<]]>#{endTime, jdbcType=TIMESTAMP}</if>
+			       and aa.activityName = uja.activityName
+                   and usa.SEARCHID = uja.SEARCHID
+                   and uja.RECORDID = uea.recordId 
+           group by uja.activityName
+            		<if test="activityProvince != null and activityProvince.length != 0">
+           		    , usa.province
+           		    </if>
+           		    <if test="activityApplyCode != null and activityApplyCode.length != 0">
+           		    , usa.applycode
+           		    </if>) b
+           on a.activityName = b.activityName 
+           	  <if test="activityProvince != null and activityProvince.length != 0">
+           	  and a.province = b.province 
+           	  </if>
+           	  <if test="activityApplyCode != null and activityApplyCode.length != 0">
+           	  and a.applycode = b.applycode
+           	  </if>) d, ACTIVITY_ATTRIBUTES e
+           	  where d.activityName = e.activityName ) c
+  </select>
+  
+  <select id="selectStatisticInActivityDimension" resultType="indi.shuyu.model.entity.Data"  parameterType="indi.shuyu.model.entity.Search">
+    select  *
+    from  (select c.*, rownum rnum from (
+           select e.activityName as activityName, joinUserNum, disJoinUserNum, awardUserNum
+	            <choose>
+			        <when test="activityProvince != null and activityProvince.length != 0">
+			           ,  d.province as province
+			        </when>
+			        <otherwise>
+			            , activityprovince as province
+			        </otherwise>
+			     </choose>
+			     <choose>
+			        <when test="activityApplyCode != null and activityApplyCode.length != 0">
+			          ,  d.applyCode as applyCode
+			        </when>
+			        <otherwise>
+			            , activityapplycode as applyCode
+			        </otherwise>
+			    </choose>
+    	  from (select   a.activityName as activityName, 
+    	    		<if test="activityProvince != null and activityProvince.length != 0">
+    	   			a.province as province, 
+    	   			</if>
+    	   			<if test="activityApplyCode != null and activityApplyCode.length != 0">
+    	   			a.applycode as applycode, 
+    	   			</if>
+    	   			joinUserNum, disJoinUserNum, awardUserNum
+		   from (
+			   select count(phoneNumber) as joinUserNum, count(distinct phoneNumber) as disJoinUserNum, uja.activityName as activityName
+			   		  <if test="activityProvince != null and activityProvince.length != 0">
+			   		  , usa.province as province
+			   		  </if>
+			   		  <if test="activityApplyCode != null and activityApplyCode.length != 0">
+			   		  , usa.applycode as applyCode 
+			   		  </if>
+			   from USER_JOIN_ACTIVITY_INFO uja, USER_SEARCH_ACTIVITY_INFO usa, ACTIVITY_ATTRIBUTES aa
+	           where  1=1
+			    	  <if test="activityIds != null"> 
+			    	      and (
+				          <foreach collection="activityIds" item="activityId" open="(" close=")" separator="or">
+				          	aa.activityId=#{activityId, jdbcType=NUMERIC}
+				          </foreach>
+				          )
+			    	  </if>
+			    	  <if test="phoneNumbers != null"> 
+			    	      and (
+				          <foreach collection="phoneNumbers" item="phoneNumber" open="(" close=")" separator="or">
+				          	phoneNumber like '%'||#{phoneNumber, jdbcType=VARCHAR}||'%'
+				          </foreach>
+				          )
+			    	  </if>
+			    	  <if test="createUser != null"> and createUser=#{createUser}</if>
+			    	  <if test="activityProvince != null and activityProvince.length != 0">
+			    	      and (
+				          <foreach collection="activityProvince" item="province" open="(" close=")" separator="or">
+				          	 usa.province like '%'||#{province}||'%'
+				          </foreach>
+				          )
+				      </if>
+			          <if test="activityApplyCode != null and activityApplyCode.length != 0">
+			    	      and (
+				          <foreach collection="activityApplyCode" item="applyCode" open="(" close=")" separator="or">
+				          	regexp_like(activityApplyCode, '(^|,)'||#{applyCode}||'($|,)')
+				          </foreach>
+				          )
+				      </if>
+				      <if test="startTime != null"> and usa.createTime<![CDATA[>=]]>#{startTime, jdbcType=TIMESTAMP}</if>
+				      <if test="endTime != null"> and usa.createTime<![CDATA[<]]>#{endTime, jdbcType=TIMESTAMP}</if>
+				      and aa.activityName = uja.activityName
+	                  and usa.SEARCHID = uja.SEARCHID
+	                  group by uja.activityName 
+	                   	    <if test="activityProvince != null and activityProvince.length != 0">
+	                  		, usa.province
+	                  		</if>
+	                  		<if test="activityApplyCode != null and activityApplyCode.length != 0">
+	                  		, usa.applycode
+	                  		</if>
+           ) a left join
+           (select count(AWARDINFOID) as awardUserNum, uja.activityName
+            		<if test="activityProvince != null and activityProvince.length != 0">
+           			, usa.province
+           			</if>
+           			<if test="activityApplyCode != null and activityApplyCode.length != 0">
+           			, usa.applycode 
+           			</if>
+            from USER_JOIN_ACTIVITY_INFO uja, USER_SEARCH_ACTIVITY_INFO usa, USER_EARN_AWARD_INFO uea, ACTIVITY_ATTRIBUTES aa
+            where 1=1
+		    	  <if test="activityIds != null"> 
+		    	      and (
+			          <foreach collection="activityIds" item="activityId" open="(" close=")" separator="or">
+			          	aa.activityId=#{activityId, jdbcType=NUMERIC}
+			          </foreach>
+			          )
+		    	  </if>
+		    	  <if test="phoneNumbers != null"> 
+		    	      and (
+			          <foreach collection="phoneNumbers" item="phoneNumber" open="(" close=")" separator="or">
+			          	phoneNumber like '%'||#{phoneNumber, jdbcType=VARCHAR}||'%'
+			          </foreach>
+			          )
+		    	  </if>
+		    	  <if test="createUser != null"> and createUser=#{createUser}</if>
+		    	  <if test="activityProvince != null and activityProvince.length != 0">
+		    	      and (
+			          <foreach collection="activityProvince" item="province" open="(" close=")" separator="or">
+			          	 usa.province like '%'||#{province}||'%'
+			          </foreach>
+			          )
+			      </if>
+		          <if test="activityApplyCode != null and activityApplyCode.length != 0">
+		    	      and (
+			          <foreach collection="activityApplyCode" item="applyCode" open="(" close=")" separator="or">
+			          	regexp_like(activityApplyCode, '(^|,)'||#{applyCode}||'($|,)')
+			          </foreach>
+			          )
+			      </if>
+			      <if test="startTime != null"> and earnTime<![CDATA[>=]]>#{startTime, jdbcType=TIMESTAMP}</if>
+			      <if test="endTime != null"> and earnTime<![CDATA[<]]>#{endTime, jdbcType=TIMESTAMP}</if>
+			       and aa.activityName = uja.activityName
+                   and usa.SEARCHID = uja.SEARCHID
+                   and uja.RECORDID = uea.recordId 
+           group by uja.activityName
+            		<if test="activityProvince != null and activityProvince.length != 0">
+           		    , usa.province
+           		    </if>
+           		    <if test="activityApplyCode != null and activityApplyCode.length != 0">
+           		    , usa.applycode
+           		    </if>) b
+           on a.activityName = b.activityName 
+           	  <if test="activityProvince != null and activityProvince.length != 0">
+           	  and a.province = b.province 
+           	  </if>
+           	  <if test="activityApplyCode != null and activityApplyCode.length != 0">
+           	  and a.applycode = b.applycode
+           	  </if>) d, ACTIVITY_ATTRIBUTES e
+           	  where d.activityName = e.activityName
+    ) c)
+    where rnum<![CDATA[>]]>#{start} and rnum<![CDATA[<=]]>#{end}
+    order by activityName
+ </select>
+ 
+ <select id="selectTotalNumForStatisticInPrizeDimension" resultType="long"  parameterType="indi.shuyu.model.entity.Search">
+    select count(g.activityName)
+    from (
+    	select e.activityName
+    	 		 <choose>
+			        <when test="activityProvince != null and activityProvince.length != 0">
+			           , province
+			        </when>
+			        <otherwise>
+			            , activityprovince as province
+			        </otherwise>
+			     </choose>
+			     <choose>
+			        <when test="activityApplyCode != null and activityApplyCode.length != 0">
+			          , applyCode
+			        </when>
+			        <otherwise>
+			            , activityapplycode as applyCode
+			        </otherwise>
+			    </choose>
+    	 		, awardSendDetail, disAwardUserNum,awardUserNum
+    	 from (select b.activityName as activityName
+    			<if test="activityProvince != null and activityProvince.length != 0">
+    	 		, b.province as province
+    	 		</if>
+    	 		<if test="activityApplyCode != null and activityApplyCode.length != 0">
+    	 		, b.applycode as applycode
+    	 		</if>
+    	 		, awardSendDetail, disAwardUserNum,awardUserNum
+    		from (select activityName
+    			<if test="activityProvince != null and activityProvince.length != 0">
+    			, province
+    			</if>
+    			<if test="activityApplyCode != null and activityApplyCode.length != 0">
+    			, applycode
+    			</if>
+    			, wmsys.wm_concat( awardType||':'||count) awardSendDetail 
+			from (select aa.activityName as activityName, awardType
+				 <if test="activityProvince != null and activityProvince.length != 0">
+				 , province
+				 </if>
+				 <if test="activityApplyCode != null and activityApplyCode.length != 0">
+				 , applycode
+				 </if>
+				 , sum(numberForAward) as count
+				  from  USER_JOIN_ACTIVITY_INFO uja, USER_SEARCH_ACTIVITY_INFO usa, USER_EARN_AWARD_INFO uea, ACTIVITY_ATTRIBUTES aa
+				  where  1=1 
+						<if test="activityIds != null"> 
+				    	      and (
+					          <foreach collection="activityIds" item="activityId" open="(" close=")" separator="or">
+					          	aa.activityId=#{activityId, jdbcType=NUMERIC}
+					          </foreach>
+					          )
+				    	</if>
+				    	<if test="phoneNumbers != null"> 
+				    	      and (
+					          <foreach collection="phoneNumbers" item="phoneNumber" open="(" close=")" separator="or">
+					          	phoneNumber like '%'||#{phoneNumber, jdbcType=VARCHAR}||'%'
+					          </foreach>
+					          )
+				    	</if>
+				    	<if test="createUser != null"> and createUser=#{createUser}</if>
+				    	<if test="activityProvince != null and activityProvince.length != 0">
+				    	      and (
+					          <foreach collection="activityProvince" item="province" open="(" close=")" separator="or">
+					          	 usa.province like '%'||#{province}||'%'
+					          </foreach>
+					          )
+					    </if>
+				        <if test="activityApplyCode != null and activityApplyCode.length != 0">
+				    	      and (
+					          <foreach collection="activityApplyCode" item="applyCode" open="(" close=")" separator="or">
+					          	regexp_like(activityApplyCode, '(^|,)'||#{applyCode}||'($|,)')
+					          </foreach>
+					          )
+					    </if>
+					    <if test="startTime != null"> and earnTime<![CDATA[>=]]>#{startTime, jdbcType=TIMESTAMP}</if>
+					    <if test="endTime != null"> and earnTime<![CDATA[<]]>#{endTime, jdbcType=TIMESTAMP}</if>
+				  		and aa.activityName = uja.activityName 
+				  		and usa.SEARCHID = uja.SEARCHID 
+				  		and uja.recordId = uea.recordId
+				  group by aa.activityName
+				  		   <if test="activityProvince != null and activityProvince.length != 0">
+				  		   , province
+				  		   </if>
+				  		   <if test="activityApplyCode != null and activityApplyCode.length != 0">
+				  		   , applycode
+				  		   </if>
+				  		   , awardType ) a
+				  group by activityName
+				  		    <if test="activityProvince != null and activityProvince.length != 0">
+				  		   , province
+				  		   </if>
+				  		   <if test="activityApplyCode != null and activityApplyCode.length != 0">
+				  		   , applycode
+				  		   </if>) b left join
+				  (select count(distinct phoneNumber) as disAwardUserNum, count( phoneNumber) as awardUserNum, uja.activityName
+				  		  <if test="activityProvince != null and activityProvince.length != 0">
+				  		  , usa.province
+				  		  </if>
+				  		  <if test="activityApplyCode != null and activityApplyCode.length != 0">
+				  		  , usa.applycode
+				  		  </if>
+      				from USER_JOIN_ACTIVITY_INFO uja, USER_SEARCH_ACTIVITY_INFO usa, USER_EARN_AWARD_INFO uea, ACTIVITY_ATTRIBUTES aa
+      				where  1=1
+      				      <if test="activityIds != null"> 
+				    	      and (
+					          <foreach collection="activityIds" item="activityId" open="(" close=")" separator="or">
+					          	aa.activityId=#{activityId, jdbcType=NUMERIC}
+					          </foreach>
+					          )
+				    	  </if>
+				    	  <if test="phoneNumbers != null"> 
+				    	      and (
+					          <foreach collection="phoneNumbers" item="phoneNumber" open="(" close=")" separator="or">
+					          	phoneNumber like '%'||#{phoneNumber, jdbcType=VARCHAR}||'%'
+					          </foreach>
+					          )
+				    	  </if>
+				    	  <if test="createUser != null"> and createUser=#{createUser}</if>
+				    	  <if test="activityProvince != null and activityProvince.length != 0">
+				    	      and (
+					          <foreach collection="activityProvince" item="province" open="(" close=")" separator="or">
+					          	 usa.province like '%'||#{province}||'%'
+					          </foreach>
+					          )
+					      </if>
+				          <if test="activityApplyCode != null and activityApplyCode.length != 0">
+				    	      and (
+					          <foreach collection="activityApplyCode" item="applyCode" open="(" close=")" separator="or">
+					          	regexp_like(activityApplyCode, '(^|,)'||#{applyCode}||'($|,)')
+					          </foreach>
+					          )
+					      </if>
+					      <if test="startTime != null"> and earnTime<![CDATA[>=]]>#{startTime, jdbcType=TIMESTAMP}</if>
+					      <if test="endTime != null"> and earnTime<![CDATA[<]]>#{endTime, jdbcType=TIMESTAMP}</if>
+            			  and aa.activityName = uja.activityName
+            		      and usa.SEARCHID = uja.SEARCHID
+            		      and uja.recordId = uea.recordId
+            		      group by uja.activityName
+            		      <if test="activityProvince != null and activityProvince.length != 0">
+            		      , usa.province
+            		      </if>
+            		      <if test="activityApplyCode != null and activityApplyCode.length != 0">
+            		      , usa.applycode
+            		      </if>) c
+               on c.activityName = b.activityName 
+                 <if test="activityProvince != null and activityProvince.length != 0">
+               	 and c.province = b.province 
+               	 </if>
+               	 <if test="activityApplyCode != null and activityApplyCode.length != 0">
+               	 and c.applycode = b.applycode   
+               	 </if>) e,ACTIVITY_ATTRIBUTES f
+               	 where e.activityName = f.activityName) g
+  </select> 
+   <select id="selectStatisticInPrizeDimension" resultType="indi.shuyu.model.entity.Data"  parameterType="indi.shuyu.model.entity.Search">
+    select  *
+    from  (select d.*, rownum rnum from (
+    	 select e.activityName
+    	 		 <choose>
+			        <when test="activityProvince != null and activityProvince.length != 0">
+			           , province
+			        </when>
+			        <otherwise>
+			            , activityprovince as province
+			        </otherwise>
+			     </choose>
+			     <choose>
+			        <when test="activityApplyCode != null and activityApplyCode.length != 0">
+			          , applyCode
+			        </when>
+			        <otherwise>
+			            , activityapplycode as applyCode
+			        </otherwise>
+			    </choose>
+    	 		, awardSendDetail, disAwardUserNum,awardUserNum
+    	 from (select b.activityName as activityName
+    			<if test="activityProvince != null and activityProvince.length != 0">
+    	 		, b.province as province
+    	 		</if>
+    	 		<if test="activityApplyCode != null and activityApplyCode.length != 0">
+    	 		, b.applycode as applycode
+    	 		</if>
+    	 		, awardSendDetail, disAwardUserNum,awardUserNum
+    		from (select activityName
+    			<if test="activityProvince != null and activityProvince.length != 0">
+    			, province
+    			</if>
+    			<if test="activityApplyCode != null and activityApplyCode.length != 0">
+    			, applycode
+    			</if>
+    			, wmsys.wm_concat( awardType||':'||count) awardSendDetail 
+			from (select aa.activityName as activityName, awardType
+				 <if test="activityProvince != null and activityProvince.length != 0">
+				 , province
+				 </if>
+				 <if test="activityApplyCode != null and activityApplyCode.length != 0">
+				 , applycode
+				 </if>
+				 , sum(numberForAward) as count
+				  from  USER_JOIN_ACTIVITY_INFO uja, USER_SEARCH_ACTIVITY_INFO usa, USER_EARN_AWARD_INFO uea, ACTIVITY_ATTRIBUTES aa
+				  where  1=1 
+						<if test="activityIds != null"> 
+				    	      and (
+					          <foreach collection="activityIds" item="activityId" open="(" close=")" separator="or">
+					          	aa.activityId=#{activityId, jdbcType=NUMERIC}
+					          </foreach>
+					          )
+				    	</if>
+				    	<if test="phoneNumbers != null"> 
+				    	      and (
+					          <foreach collection="phoneNumbers" item="phoneNumber" open="(" close=")" separator="or">
+					          	phoneNumber like '%'||#{phoneNumber, jdbcType=VARCHAR}||'%'
+					          </foreach>
+					          )
+				    	</if>
+				    	<if test="createUser != null"> and createUser=#{createUser}</if>
+				    	<if test="activityProvince != null and activityProvince.length != 0">
+				    	      and (
+					          <foreach collection="activityProvince" item="province" open="(" close=")" separator="or">
+					          	 usa.province like '%'||#{province}||'%'
+					          </foreach>
+					          )
+					    </if>
+				        <if test="activityApplyCode != null and activityApplyCode.length != 0">
+				    	      and (
+					          <foreach collection="activityApplyCode" item="applyCode" open="(" close=")" separator="or">
+					          	regexp_like(activityApplyCode, '(^|,)'||#{applyCode}||'($|,)')
+					          </foreach>
+					          )
+					    </if>
+					    <if test="startTime != null"> and earnTime<![CDATA[>=]]>#{startTime, jdbcType=TIMESTAMP}</if>
+					    <if test="endTime != null"> and earnTime<![CDATA[<]]>#{endTime, jdbcType=TIMESTAMP}</if>
+				  		and aa.activityName = uja.activityName 
+				  		and usa.SEARCHID = uja.SEARCHID 
+				  		and uja.recordId = uea.recordId
+				  group by aa.activityName
+				  		   <if test="activityProvince != null and activityProvince.length != 0">
+				  		   , province
+				  		   </if>
+				  		   <if test="activityApplyCode != null and activityApplyCode.length != 0">
+				  		   , applycode
+				  		   </if>
+				  		   , awardType ) a
+				  group by activityName
+				  		    <if test="activityProvince != null and activityProvince.length != 0">
+				  		   , province
+				  		   </if>
+				  		   <if test="activityApplyCode != null and activityApplyCode.length != 0">
+				  		   , applycode
+				  		   </if>) b left join
+				  (select count(distinct phoneNumber) as disAwardUserNum, count( phoneNumber) as awardUserNum, uja.activityName
+				  		  <if test="activityProvince != null and activityProvince.length != 0">
+				  		  , usa.province
+				  		  </if>
+				  		  <if test="activityApplyCode != null and activityApplyCode.length != 0">
+				  		  , usa.applycode
+				  		  </if>
+      				from USER_JOIN_ACTIVITY_INFO uja, USER_SEARCH_ACTIVITY_INFO usa, USER_EARN_AWARD_INFO uea, ACTIVITY_ATTRIBUTES aa
+      				where  1=1
+      				      <if test="activityIds != null"> 
+				    	      and (
+					          <foreach collection="activityIds" item="activityId" open="(" close=")" separator="or">
+					          	aa.activityId=#{activityId, jdbcType=NUMERIC}
+					          </foreach>
+					          )
+				    	  </if>
+				    	  <if test="phoneNumbers != null"> 
+				    	      and (
+					          <foreach collection="phoneNumbers" item="phoneNumber" open="(" close=")" separator="or">
+					          	phoneNumber like '%'||#{phoneNumber, jdbcType=VARCHAR}||'%'
+					          </foreach>
+					          )
+				    	  </if>
+				    	  <if test="createUser != null"> and createUser=#{createUser}</if>
+				    	  <if test="activityProvince != null and activityProvince.length != 0">
+				    	      and (
+					          <foreach collection="activityProvince" item="province" open="(" close=")" separator="or">
+					          	 usa.province like '%'||#{province}||'%'
+					          </foreach>
+					          )
+					      </if>
+				          <if test="activityApplyCode != null and activityApplyCode.length != 0">
+				    	      and (
+					          <foreach collection="activityApplyCode" item="applyCode" open="(" close=")" separator="or">
+					          	regexp_like(activityApplyCode, '(^|,)'||#{applyCode}||'($|,)')
+					          </foreach>
+					          )
+					      </if>
+					      <if test="startTime != null"> and earnTime<![CDATA[>=]]>#{startTime, jdbcType=TIMESTAMP}</if>
+					      <if test="endTime != null"> and earnTime<![CDATA[<]]>#{endTime, jdbcType=TIMESTAMP}</if>
+            			  and aa.activityName = uja.activityName
+            		      and usa.SEARCHID = uja.SEARCHID
+            		      and uja.recordId = uea.recordId
+            		      group by uja.activityName
+            		      <if test="activityProvince != null and activityProvince.length != 0">
+            		      , usa.province
+            		      </if>
+            		      <if test="activityApplyCode != null and activityApplyCode.length != 0">
+            		      , usa.applycode
+            		      </if>) c
+               on c.activityName = b.activityName 
+                 <if test="activityProvince != null and activityProvince.length != 0">
+               	 and c.province = b.province 
+               	 </if>
+               	 <if test="activityApplyCode != null and activityApplyCode.length != 0">
+               	 and c.applycode = b.applycode   
+               	 </if>) e,ACTIVITY_ATTRIBUTES f
+               	 where e.activityName = f.activityName
+    ) d) 
+    where rnum<![CDATA[>]]>#{start} and rnum<![CDATA[<=]]>#{end}
+    order by activityName
+  </select>
+  
+ <select id="selectTotalNumForStatisticInPrizeDimension1" resultType="long"  parameterType="indi.shuyu.model.entity.Search">
+    select count(b.activityName)
+    from (select activityName, province, applycode, wmsys.wm_concat( awardType||':'||count) awardSendNum 
+			from (select aa.activityName as activityName, awardType, province, applycode, sum(numberForAward) as count
+				  from  USER_JOIN_ACTIVITY_INFO uja, USER_SEARCH_ACTIVITY_INFO usa, USER_EARN_AWARD_INFO uea, ACTIVITY_ATTRIBUTES aa
+				  where  1=1 
+						<if test="activityIds != null"> 
+				    	      and (
+					          <foreach collection="activityIds" item="activityId" open="(" close=")" separator="or">
+					          	aa.activityId=#{activityId, jdbcType=NUMERIC}
+					          </foreach>
+					          )
+				    	</if>
+				    	<if test="phoneNumbers != null"> 
+				    	      and (
+					          <foreach collection="phoneNumbers" item="phoneNumber" open="(" close=")" separator="or">
+					          	phoneNumber like '%'||#{phoneNumber, jdbcType=VARCHAR}||'%'
+					          </foreach>
+					          )
+				    	</if>
+				    	<if test="createUser != null"> and createUser=#{createUser}</if>
+				    	<if test="activityProvince != null and activityProvince.length != 0">
+				    	      and (
+					          <foreach collection="activityProvince" item="province" open="(" close=")" separator="or">
+					          	 usa.province like '%'||#{province}||'%'
+					          </foreach>
+					          )
+					    </if>
+				        <if test="activityApplyCode != null and activityApplyCode.length != 0">
+				    	      and (
+					          <foreach collection="activityApplyCode" item="applyCode" open="(" close=")" separator="or">
+					          	regexp_like(activityApplyCode, '(^|,)'||#{applyCode}||'($|,)')
+					          </foreach>
+					          )
+					    </if>
+					    <if test="startTime != null"> and earnTime<![CDATA[>=]]>#{startTime, jdbcType=TIMESTAMP}</if>
+					    <if test="endTime != null"> and earnTime<![CDATA[<]]>#{endTime, jdbcType=TIMESTAMP}</if>
+				  		and aa.activityName = uja.activityName 
+				  		and usa.SEARCHID = uja.SEARCHID 
+				  		and uja.recordId = uea.recordId
+				  group by aa.activityName, province, applycode, awardType ) a
+				  group by activityName, province, applycode) b left join
+				  (select count(distinct phoneNumber) as disAwardUserNum, count( phoneNumber) as awardUserNum, uja.activityName, usa.province, usa.applycode
+      				from USER_JOIN_ACTIVITY_INFO uja, USER_SEARCH_ACTIVITY_INFO usa, USER_EARN_AWARD_INFO uea, ACTIVITY_ATTRIBUTES aa
+      				where  1=1
+      				      <if test="activityIds != null"> 
+				    	      and (
+					          <foreach collection="activityIds" item="activityId" open="(" close=")" separator="or">
+					          	aa.activityId=#{activityId, jdbcType=NUMERIC}
+					          </foreach>
+					          )
+				    	  </if>
+				    	  <if test="phoneNumbers != null"> 
+				    	      and (
+					          <foreach collection="phoneNumbers" item="phoneNumber" open="(" close=")" separator="or">
+					          	phoneNumber like '%'||#{phoneNumber, jdbcType=VARCHAR}||'%'
+					          </foreach>
+					          )
+				    	  </if>
+				    	  <if test="createUser != null"> and createUser=#{createUser}</if>
+				    	  <if test="activityProvince != null and activityProvince.length != 0">
+				    	      and (
+					          <foreach collection="activityProvince" item="province" open="(" close=")" separator="or">
+					          	 usa.province like '%'||#{province}||'%'
+					          </foreach>
+					          )
+					      </if>
+				          <if test="activityApplyCode != null and activityApplyCode.length != 0">
+				    	      and (
+					          <foreach collection="activityApplyCode" item="applyCode" open="(" close=")" separator="or">
+					          	regexp_like(activityApplyCode, '(^|,)'||#{applyCode}||'($|,)')
+					          </foreach>
+					          )
+					      </if>
+					      <if test="startTime != null"> and earnTime<![CDATA[>=]]>#{startTime, jdbcType=TIMESTAMP}</if>
+					      <if test="endTime != null"> and earnTime<![CDATA[<]]>#{endTime, jdbcType=TIMESTAMP}</if>
+            			  and aa.activityName = uja.activityName
+            		      and usa.SEARCHID = uja.SEARCHID
+            		      and uja.recordId = uea.recordId
+            		      group by uja.activityName, usa.province, usa.applycode) c
+               on c.activityName = b.activityName and c.province = b.province and c.applycode = b.applycode
+  </select>
+  
+  <select id="selectStatisticInPrizeDimension1" resultType="indi.shuyu.model.entity.Data"  parameterType="indi.shuyu.model.entity.Search">
+    select  *
+    from  (select d.*, rownum rnum from (
+    	 select b.activityName as activityName, b.province as province, b.applycode as applycode, awardSendDetail, disAwardUserNum,awardUserNum
+    		from (select activityName, province, applycode, wmsys.wm_concat( awardType||':'||count) awardSendDetail 
+			from (select aa.activityName as activityName, awardType, province, applycode, sum(numberForAward) as count
+				  from  USER_JOIN_ACTIVITY_INFO uja, USER_SEARCH_ACTIVITY_INFO usa, USER_EARN_AWARD_INFO uea, ACTIVITY_ATTRIBUTES aa
+				  where  1=1 
+						<if test="activityIds != null"> 
+				    	      and (
+					          <foreach collection="activityIds" item="activityId" open="(" close=")" separator="or">
+					          	aa.activityId=#{activityId, jdbcType=NUMERIC}
+					          </foreach>
+					          )
+				    	</if>
+				    	<if test="phoneNumbers != null"> 
+				    	      and (
+					          <foreach collection="phoneNumbers" item="phoneNumber" open="(" close=")" separator="or">
+					          	phoneNumber like '%'||#{phoneNumber, jdbcType=VARCHAR}||'%'
+					          </foreach>
+					          )
+				    	</if>
+				    	<if test="createUser != null"> and createUser=#{createUser}</if>
+				    	<if test="activityProvince != null and activityProvince.length != 0">
+				    	      and (
+					          <foreach collection="activityProvince" item="province" open="(" close=")" separator="or">
+					          	 usa.province like '%'||#{province}||'%'
+					          </foreach>
+					          )
+					    </if>
+				        <if test="activityApplyCode != null and activityApplyCode.length != 0">
+				    	      and (
+					          <foreach collection="activityApplyCode" item="applyCode" open="(" close=")" separator="or">
+					          	regexp_like(activityApplyCode, '(^|,)'||#{applyCode}||'($|,)')
+					          </foreach>
+					          )
+					    </if>
+					    <if test="startTime != null"> and earnTime<![CDATA[>=]]>#{startTime, jdbcType=TIMESTAMP}</if>
+					    <if test="endTime != null"> and earnTime<![CDATA[<]]>#{endTime, jdbcType=TIMESTAMP}</if>
+				  		and aa.activityName = uja.activityName 
+				  		and usa.SEARCHID = uja.SEARCHID 
+				  		and uja.recordId = uea.recordId
+				  group by aa.activityName, province, applycode, awardType ) a
+				  group by activityName, province, applycode) b left join
+				  (select count(distinct phoneNumber) as disAwardUserNum, count( phoneNumber) as awardUserNum, uja.activityName, usa.province, usa.applycode
+      				from USER_JOIN_ACTIVITY_INFO uja, USER_SEARCH_ACTIVITY_INFO usa, USER_EARN_AWARD_INFO uea, ACTIVITY_ATTRIBUTES aa
+      				where  1=1
+      				      <if test="activityIds != null"> 
+				    	      and (
+					          <foreach collection="activityIds" item="activityId" open="(" close=")" separator="or">
+					          	aa.activityId=#{activityId, jdbcType=NUMERIC}
+					          </foreach>
+					          )
+				    	  </if>
+				    	  <if test="phoneNumbers != null"> 
+				    	      and (
+					          <foreach collection="phoneNumbers" item="phoneNumber" open="(" close=")" separator="or">
+					          	phoneNumber like '%'||#{phoneNumber, jdbcType=VARCHAR}||'%'
+					          </foreach>
+					          )
+				    	  </if>
+				    	  <if test="createUser != null"> and createUser=#{createUser}</if>
+				    	  <if test="activityProvince != null and activityProvince.length != 0">
+				    	      and (
+					          <foreach collection="activityProvince" item="province" open="(" close=")" separator="or">
+					          	 usa.province like '%'||#{province}||'%'
+					          </foreach>
+					          )
+					      </if>
+				          <if test="activityApplyCode != null and activityApplyCode.length != 0">
+				    	      and (
+					          <foreach collection="activityApplyCode" item="applyCode" open="(" close=")" separator="or">
+					          	regexp_like(activityApplyCode, '(^|,)'||#{applyCode}||'($|,)')
+					          </foreach>
+					          )
+					      </if>
+					      <if test="startTime != null"> and earnTime<![CDATA[>=]]>#{startTime, jdbcType=TIMESTAMP}</if>
+					      <if test="endTime != null"> and earnTime<![CDATA[<]]>#{endTime, jdbcType=TIMESTAMP}</if>
+            			  and aa.activityName = uja.activityName
+            		      and usa.SEARCHID = uja.SEARCHID
+            		      and uja.recordId = uea.recordId
+            		      group by uja.activityName, usa.province, usa.applycode) c
+               on c.activityName = b.activityName and c.province = b.province and c.applycode = b.applycode   
+    ) d) 
+    where rnum<![CDATA[>]]>#{start} and rnum<![CDATA[<=]]>#{end}
+    order by activityName
+  </select>
+  
+  <select id="selectTotalNumForStatisticInUserDimension" resultType="long"  parameterType="indi.shuyu.model.entity.Search">
+    select count(sum(NUMBERFORAWARD))
+		from USER_EARN_AWARD_INFO uea, USER_JOIN_ACTIVITY_INFO uja, USER_SEARCH_ACTIVITY_INFO usa, ACTIVITY_ATTRIBUTES aa, activity_prize ap
+        where 1=1
+    		  <if test="activityIds != null"> 
+	    	      and (
+		          <foreach collection="activityIds" item="activityId" open="(" close=")" separator="or">
+		          	aa.activityId=#{activityId, jdbcType=NUMERIC}
+		          </foreach>
+		          )
+	    	  </if>
+	    	  <if test="phoneNumbers != null"> 
+	    	      and (
+		          <foreach collection="phoneNumbers" item="phoneNumber" open="(" close=")" separator="or">
+		          	phoneNumber like '%'||#{phoneNumber, jdbcType=VARCHAR}||'%'
+		          </foreach>
+		          )
+	    	  </if>
+	    	  <if test="createUser != null"> and createUser=#{createUser}</if>
+	    	  <if test="activityProvince != null and activityProvince.length != 0">
+	    	      and (
+		          <foreach collection="activityProvince" item="province" open="(" close=")" separator="or">
+		          	 usa.province like '%'||#{province}||'%'
+		          </foreach>
+		          )
+		      </if>
+		      <if test="awardTypeIds != null and awardTypeIds.length != 0">
+	    	      and (
+		          <foreach collection="awardTypeIds" item="prizeId" open="(" close=")" separator="or">
+		          	 prizeId=#{prizeId, jdbcType=NUMERIC}
+		          </foreach>
+		          )
+		      </if>
+	          <if test="activityApplyCode != null and activityApplyCode.length != 0">
+	    	      and (
+		          <foreach collection="activityApplyCode" item="applyCode" open="(" close=")" separator="or">
+		          	regexp_like(activityApplyCode, '(^|,)'||#{applyCode}||'($|,)')
+		          </foreach>
+		          )
+		      </if>
+		      <if test="startTime != null"> and earnTime<![CDATA[>=]]>#{startTime, jdbcType=TIMESTAMP}</if>
+		      <if test="endTime != null"> and earnTime<![CDATA[<]]>#{endTime, jdbcType=TIMESTAMP}</if>
+		      and aa.activityName = uja.activityName
+		      and ap.prizeName = uea.awardType
+		      and uea.RECORDID = uja.RECORDID  
+		      and usa.SEARCHID = uja.SEARCHID
+		      group by phoneNumber
+		      		<if test="activityProvince != null and activityProvince.length != 0">
+		      		, province
+		      		</if>
+		      		<if test="activityApplyCode != null and activityApplyCode.length != 0">
+		      		, applycode
+		      		</if>
+		      		<if test="activityIds != null"> 
+		      		, aa.activityName
+		      		</if>
+		      		<if test="awardTypeIds != null and awardTypeIds.length != 0">
+		      		, awardType
+		      		</if>
+  </select>
+  
+  <select id="selectStatisticInUserDimension" resultType="indi.shuyu.model.entity.Data"  parameterType="indi.shuyu.model.entity.Search">
+    select  *
+    from  (select a.*, rownum rnum from (
+    	 select phoneNumber, province, applycode, aa.activityName, awardType, sum(NUMBERFORAWARD) as NUMBERFORAWARD
+		from USER_EARN_AWARD_INFO uea, USER_JOIN_ACTIVITY_INFO uja, USER_SEARCH_ACTIVITY_INFO usa, ACTIVITY_ATTRIBUTES aa, activity_prize ap
+        where 1=1
+    		  <if test="activityIds != null"> 
+	    	      and (
+		          <foreach collection="activityIds" item="activityId" open="(" close=")" separator="or">
+		          	aa.activityId=#{activityId, jdbcType=NUMERIC}
+		          </foreach>
+		          )
+	    	  </if>
+	    	  <if test="phoneNumbers != null"> 
+	    	      and (
+		          <foreach collection="phoneNumbers" item="phoneNumber" open="(" close=")" separator="or">
+		          	phoneNumber like '%'||#{phoneNumber, jdbcType=VARCHAR}||'%'
+		          </foreach>
+		          )
+	    	  </if>
+	    	  <if test="createUser != null"> and createUser=#{createUser}</if>
+	    	  <if test="activityProvince != null and activityProvince.length != 0">
+	    	      and (
+		          <foreach collection="activityProvince" item="province" open="(" close=")" separator="or">
+		          	 usa.province like '%'||#{province}||'%'
+		          </foreach>
+		          )
+		      </if>
+		      <if test="awardTypeIds != null and awardTypeIds.length != 0">
+	    	      and (
+		          <foreach collection="awardTypeIds" item="prizeId" open="(" close=")" separator="or">
+		          	 prizeId=#{prizeId, jdbcType=NUMERIC}
+		          </foreach>
+		          )
+		      </if>
+	          <if test="activityApplyCode != null and activityApplyCode.length != 0">
+	    	      and (
+		          <foreach collection="activityApplyCode" item="applyCode" open="(" close=")" separator="or">
+		          	regexp_like(activityApplyCode, '(^|,)'||#{applyCode}||'($|,)')
+		          </foreach>
+		          )
+		      </if>
+		      <if test="startTime != null"> and earnTime<![CDATA[>=]]>#{startTime, jdbcType=TIMESTAMP}</if>
+		      <if test="endTime != null"> and earnTime<![CDATA[<]]>#{endTime, jdbcType=TIMESTAMP}</if>
+		      and aa.activityName = uja.activityName
+		      and ap.prizeName = uea.awardType
+		      and uea.RECORDID = uja.RECORDID  
+		      and usa.SEARCHID = uja.SEARCHID
+		      group by phoneNumber, province, applycode, aa.activityName, awardType
+    ) a) 
+    where rnum<![CDATA[>]]>#{start} and rnum<![CDATA[<=]]>#{end}
+    order by phoneNumber
+  </select>
+  
+  
+  <select id="selectUserEarnAwardListForExport" resultType="indi.shuyu.model.entity.Data"  parameterType="indi.shuyu.model.entity.Search">
+
+    select  <include refid="userEarnAwardAttrs" />, aa.activityName as activityName, aa.activityId as activityId
+    from USER_EARN_AWARD_INFO uea, USER_JOIN_ACTIVITY_INFO uja, USER_SEARCH_ACTIVITY_INFO usa, ACTIVITY_ATTRIBUTES aa
+    where 1=1
+    	  <if test="activityIds != null"> 
+    	      and (
+	          <foreach collection="activityIds" item="activityId" open="(" close=")" separator="or">
+	          	aa.activityId=#{activityId, jdbcType=NUMERIC}
+	          </foreach>
+	          )
+    	  </if>
+    	  <if test="phoneNumbers != null"> 
+    	      and (
+	          <foreach collection="phoneNumbers" item="phoneNumber" open="(" close=")" separator="or">
+	          	phoneNumber like '%'||#{phoneNumber, jdbcType=VARCHAR}||'%'
+	          </foreach>
+	          )
+    	  </if>
+    	  <if test="createUser != null"> and createUser=#{createUser}</if>
+    	  <if test="activityProvince != null and activityProvince.length != 0">
+    	      and (
+	          <foreach collection="activityProvince" item="province" open="(" close=")" separator="or">
+	          	 usa.province like '%'||#{province}||'%'
+	          </foreach>
+	          )
+	      </if>
+          <if test="activityApplyCode != null and activityApplyCode.length != 0">
+    	      and (
+	          <foreach collection="activityApplyCode" item="applyCode" open="(" close=")" separator="or">
+	          	regexp_like(activityApplyCode, '(^|,)'||#{applyCode}||'($|,)')
+	          </foreach>
+	          )
+	      </if>
+	      <if test="startTime != null"> and earnTime<![CDATA[>=]]>#{startTime, jdbcType=TIMESTAMP}</if>
+	      <if test="endTime != null"> and earnTime<![CDATA[<]]>#{endTime, jdbcType=TIMESTAMP}</if>
+	       and aa.activityName = uja.activityName
+           and uea.RECORDID = uja.RECORDID  
+    	   and usa.SEARCHID = uja.SEARCHID
+    	   order by earnTime desc
+  </select>
+  
+  <select id="selectStatisticInActivityDimensionForExport" resultType="indi.shuyu.model.entity.Data"  parameterType="indi.shuyu.model.entity.Search">
+    select e.activityName as activityName, joinUserNum, disJoinUserNum, awardUserNum
+	            <choose>
+			        <when test="activityProvince != null and activityProvince.length != 0">
+			           ,  d.province as province
+			        </when>
+			        <otherwise>
+			            , activityprovince as province
+			        </otherwise>
+			     </choose>
+			     <choose>
+			        <when test="activityApplyCode != null and activityApplyCode.length != 0">
+			          ,  d.applyCode as applyCode
+			        </when>
+			        <otherwise>
+			            , activityapplycode as applyCode
+			        </otherwise>
+			    </choose>
+    	  from (select   a.activityName as activityName, 
+    	    		<if test="activityProvince != null and activityProvince.length != 0">
+    	   			a.province as province, 
+    	   			</if>
+    	   			<if test="activityApplyCode != null and activityApplyCode.length != 0">
+    	   			a.applycode as applycode, 
+    	   			</if>
+    	   			joinUserNum, disJoinUserNum, awardUserNum
+		   from (
+			   select count(phoneNumber) as joinUserNum, count(distinct phoneNumber) as disJoinUserNum, uja.activityName as activityName
+			   		  <if test="activityProvince != null and activityProvince.length != 0">
+			   		  , usa.province as province
+			   		  </if>
+			   		  <if test="activityApplyCode != null and activityApplyCode.length != 0">
+			   		  , usa.applycode as applyCode 
+			   		  </if>
+			   from USER_JOIN_ACTIVITY_INFO uja, USER_SEARCH_ACTIVITY_INFO usa, ACTIVITY_ATTRIBUTES aa
+	           where  1=1
+			    	  <if test="activityIds != null"> 
+			    	      and (
+				          <foreach collection="activityIds" item="activityId" open="(" close=")" separator="or">
+				          	aa.activityId=#{activityId, jdbcType=NUMERIC}
+				          </foreach>
+				          )
+			    	  </if>
+			    	  <if test="phoneNumbers != null"> 
+			    	      and (
+				          <foreach collection="phoneNumbers" item="phoneNumber" open="(" close=")" separator="or">
+				          	phoneNumber like '%'||#{phoneNumber, jdbcType=VARCHAR}||'%'
+				          </foreach>
+				          )
+			    	  </if>
+			    	  <if test="createUser != null"> and createUser=#{createUser}</if>
+			    	  <if test="activityProvince != null and activityProvince.length != 0">
+			    	      and (
+				          <foreach collection="activityProvince" item="province" open="(" close=")" separator="or">
+				          	 usa.province like '%'||#{province}||'%'
+				          </foreach>
+				          )
+				      </if>
+			          <if test="activityApplyCode != null and activityApplyCode.length != 0">
+			    	      and (
+				          <foreach collection="activityApplyCode" item="applyCode" open="(" close=")" separator="or">
+				          	regexp_like(activityApplyCode, '(^|,)'||#{applyCode}||'($|,)')
+				          </foreach>
+				          )
+				      </if>
+				      <if test="startTime != null"> and usa.createTime<![CDATA[>=]]>#{startTime, jdbcType=TIMESTAMP}</if>
+				      <if test="endTime != null"> and usa.createTime<![CDATA[<]]>#{endTime, jdbcType=TIMESTAMP}</if>
+				      and aa.activityName = uja.activityName
+	                  and usa.SEARCHID = uja.SEARCHID
+	                  group by uja.activityName 
+	                   	    <if test="activityProvince != null and activityProvince.length != 0">
+	                  		, usa.province
+	                  		</if>
+	                  		<if test="activityApplyCode != null and activityApplyCode.length != 0">
+	                  		, usa.applycode
+	                  		</if>
+           ) a left join
+           (select count(AWARDINFOID) as awardUserNum, uja.activityName
+            		<if test="activityProvince != null and activityProvince.length != 0">
+           			, usa.province
+           			</if>
+           			<if test="activityApplyCode != null and activityApplyCode.length != 0">
+           			, usa.applycode 
+           			</if>
+            from USER_JOIN_ACTIVITY_INFO uja, USER_SEARCH_ACTIVITY_INFO usa, USER_EARN_AWARD_INFO uea, ACTIVITY_ATTRIBUTES aa
+            where 1=1
+		    	  <if test="activityIds != null"> 
+		    	      and (
+			          <foreach collection="activityIds" item="activityId" open="(" close=")" separator="or">
+			          	aa.activityId=#{activityId, jdbcType=NUMERIC}
+			          </foreach>
+			          )
+		    	  </if>
+		    	  <if test="phoneNumbers != null"> 
+		    	      and (
+			          <foreach collection="phoneNumbers" item="phoneNumber" open="(" close=")" separator="or">
+			          	phoneNumber like '%'||#{phoneNumber, jdbcType=VARCHAR}||'%'
+			          </foreach>
+			          )
+		    	  </if>
+		    	  <if test="createUser != null"> and createUser=#{createUser}</if>
+		    	  <if test="activityProvince != null and activityProvince.length != 0">
+		    	      and (
+			          <foreach collection="activityProvince" item="province" open="(" close=")" separator="or">
+			          	 usa.province like '%'||#{province}||'%'
+			          </foreach>
+			          )
+			      </if>
+		          <if test="activityApplyCode != null and activityApplyCode.length != 0">
+		    	      and (
+			          <foreach collection="activityApplyCode" item="applyCode" open="(" close=")" separator="or">
+			          	regexp_like(activityApplyCode, '(^|,)'||#{applyCode}||'($|,)')
+			          </foreach>
+			          )
+			      </if>
+			      <if test="startTime != null"> and earnTime<![CDATA[>=]]>#{startTime, jdbcType=TIMESTAMP}</if>
+			      <if test="endTime != null"> and earnTime<![CDATA[<]]>#{endTime, jdbcType=TIMESTAMP}</if>
+			       and aa.activityName = uja.activityName
+                   and usa.SEARCHID = uja.SEARCHID
+                   and uja.RECORDID = uea.recordId 
+           group by uja.activityName
+            		<if test="activityProvince != null and activityProvince.length != 0">
+           		    , usa.province
+           		    </if>
+           		    <if test="activityApplyCode != null and activityApplyCode.length != 0">
+           		    , usa.applycode
+           		    </if>) b
+           on a.activityName = b.activityName 
+           	  <if test="activityProvince != null and activityProvince.length != 0">
+           	  and a.province = b.province 
+           	  </if>
+           	  <if test="activityApplyCode != null and activityApplyCode.length != 0">
+           	  and a.applycode = b.applycode
+           	  </if>) d, ACTIVITY_ATTRIBUTES e
+           	  where d.activityName = e.activityName
+ </select>
+ 
+ <select id="selectStatisticInPrizeDimensionForExport" resultType="indi.shuyu.model.entity.Data"  parameterType="indi.shuyu.model.entity.Search">
+   
+    	 select e.activityName
+    	 		 <choose>
+			        <when test="activityProvince != null and activityProvince.length != 0">
+			           , province
+			        </when>
+			        <otherwise>
+			            , activityprovince as province
+			        </otherwise>
+			     </choose>
+			     <choose>
+			        <when test="activityApplyCode != null and activityApplyCode.length != 0">
+			          , applyCode
+			        </when>
+			        <otherwise>
+			            , activityapplycode as applyCode
+			        </otherwise>
+			    </choose>
+    	 		, awardSendDetail, disAwardUserNum,awardUserNum
+    	 from (select b.activityName as activityName
+    			<if test="activityProvince != null and activityProvince.length != 0">
+    	 		, b.province as province
+    	 		</if>
+    	 		<if test="activityApplyCode != null and activityApplyCode.length != 0">
+    	 		, b.applycode as applycode
+    	 		</if>
+    	 		, awardSendDetail, disAwardUserNum,awardUserNum
+    		from (select activityName
+    			<if test="activityProvince != null and activityProvince.length != 0">
+    			, province
+    			</if>
+    			<if test="activityApplyCode != null and activityApplyCode.length != 0">
+    			, applycode
+    			</if>
+    			, wmsys.wm_concat( awardType||':'||count) awardSendDetail 
+			from (select aa.activityName as activityName, awardType
+				 <if test="activityProvince != null and activityProvince.length != 0">
+				 , province
+				 </if>
+				 <if test="activityApplyCode != null and activityApplyCode.length != 0">
+				 , applycode
+				 </if>
+				 , sum(numberForAward) as count
+				  from  USER_JOIN_ACTIVITY_INFO uja, USER_SEARCH_ACTIVITY_INFO usa, USER_EARN_AWARD_INFO uea, ACTIVITY_ATTRIBUTES aa
+				  where  1=1 
+						<if test="activityIds != null"> 
+				    	      and (
+					          <foreach collection="activityIds" item="activityId" open="(" close=")" separator="or">
+					          	aa.activityId=#{activityId, jdbcType=NUMERIC}
+					          </foreach>
+					          )
+				    	</if>
+				    	<if test="phoneNumbers != null"> 
+				    	      and (
+					          <foreach collection="phoneNumbers" item="phoneNumber" open="(" close=")" separator="or">
+					          	phoneNumber like '%'||#{phoneNumber, jdbcType=VARCHAR}||'%'
+					          </foreach>
+					          )
+				    	</if>
+				    	<if test="createUser != null"> and createUser=#{createUser}</if>
+				    	<if test="activityProvince != null and activityProvince.length != 0">
+				    	      and (
+					          <foreach collection="activityProvince" item="province" open="(" close=")" separator="or">
+					          	 usa.province like '%'||#{province}||'%'
+					          </foreach>
+					          )
+					    </if>
+				        <if test="activityApplyCode != null and activityApplyCode.length != 0">
+				    	      and (
+					          <foreach collection="activityApplyCode" item="applyCode" open="(" close=")" separator="or">
+					          	regexp_like(activityApplyCode, '(^|,)'||#{applyCode}||'($|,)')
+					          </foreach>
+					          )
+					    </if>
+					    <if test="startTime != null"> and earnTime<![CDATA[>=]]>#{startTime, jdbcType=TIMESTAMP}</if>
+					    <if test="endTime != null"> and earnTime<![CDATA[<]]>#{endTime, jdbcType=TIMESTAMP}</if>
+				  		and aa.activityName = uja.activityName 
+				  		and usa.SEARCHID = uja.SEARCHID 
+				  		and uja.recordId = uea.recordId
+				  group by aa.activityName
+				  		   <if test="activityProvince != null and activityProvince.length != 0">
+				  		   , province
+				  		   </if>
+				  		   <if test="activityApplyCode != null and activityApplyCode.length != 0">
+				  		   , applycode
+				  		   </if>
+				  		   , awardType ) a
+				  group by activityName
+				  		    <if test="activityProvince != null and activityProvince.length != 0">
+				  		   , province
+				  		   </if>
+				  		   <if test="activityApplyCode != null and activityApplyCode.length != 0">
+				  		   , applycode
+				  		   </if>) b left join
+				  (select count(distinct phoneNumber) as disAwardUserNum, count( phoneNumber) as awardUserNum, uja.activityName
+				  		  <if test="activityProvince != null and activityProvince.length != 0">
+				  		  , usa.province
+				  		  </if>
+				  		  <if test="activityApplyCode != null and activityApplyCode.length != 0">
+				  		  , usa.applycode
+				  		  </if>
+      				from USER_JOIN_ACTIVITY_INFO uja, USER_SEARCH_ACTIVITY_INFO usa, USER_EARN_AWARD_INFO uea, ACTIVITY_ATTRIBUTES aa
+      				where  1=1
+      				      <if test="activityIds != null"> 
+				    	      and (
+					          <foreach collection="activityIds" item="activityId" open="(" close=")" separator="or">
+					          	aa.activityId=#{activityId, jdbcType=NUMERIC}
+					          </foreach>
+					          )
+				    	  </if>
+				    	  <if test="phoneNumbers != null"> 
+				    	      and (
+					          <foreach collection="phoneNumbers" item="phoneNumber" open="(" close=")" separator="or">
+					          	phoneNumber like '%'||#{phoneNumber, jdbcType=VARCHAR}||'%'
+					          </foreach>
+					          )
+				    	  </if>
+				    	  <if test="createUser != null"> and createUser=#{createUser}</if>
+				    	  <if test="activityProvince != null and activityProvince.length != 0">
+				    	      and (
+					          <foreach collection="activityProvince" item="province" open="(" close=")" separator="or">
+					          	 usa.province like '%'||#{province}||'%'
+					          </foreach>
+					          )
+					      </if>
+				          <if test="activityApplyCode != null and activityApplyCode.length != 0">
+				    	      and (
+					          <foreach collection="activityApplyCode" item="applyCode" open="(" close=")" separator="or">
+					          	regexp_like(activityApplyCode, '(^|,)'||#{applyCode}||'($|,)')
+					          </foreach>
+					          )
+					      </if>
+					      <if test="startTime != null"> and earnTime<![CDATA[>=]]>#{startTime, jdbcType=TIMESTAMP}</if>
+					      <if test="endTime != null"> and earnTime<![CDATA[<]]>#{endTime, jdbcType=TIMESTAMP}</if>
+            			  and aa.activityName = uja.activityName
+            		      and usa.SEARCHID = uja.SEARCHID
+            		      and uja.recordId = uea.recordId
+            		      group by uja.activityName
+            		      <if test="activityProvince != null and activityProvince.length != 0">
+            		      , usa.province
+            		      </if>
+            		      <if test="activityApplyCode != null and activityApplyCode.length != 0">
+            		      , usa.applycode
+            		      </if>) c
+               on c.activityName = b.activityName 
+                 <if test="activityProvince != null and activityProvince.length != 0">
+               	 and c.province = b.province 
+               	 </if>
+               	 <if test="activityApplyCode != null and activityApplyCode.length != 0">
+               	 and c.applycode = b.applycode   
+               	 </if>) e,ACTIVITY_ATTRIBUTES f
+               	 where e.activityName = f.activityName
+  </select>
+  
+  <select id="selectStatisticInUserDimensionForExport" resultType="indi.shuyu.model.entity.Data"  parameterType="indi.shuyu.model.entity.Search">
+
+    	 select phoneNumber, province, applycode, aa.activityName, awardType, sum(NUMBERFORAWARD) as NUMBERFORAWARD
+		from USER_EARN_AWARD_INFO uea, USER_JOIN_ACTIVITY_INFO uja, USER_SEARCH_ACTIVITY_INFO usa, ACTIVITY_ATTRIBUTES aa, activity_prize ap
+        where 1=1
+    		  <if test="activityIds != null"> 
+	    	      and (
+		          <foreach collection="activityIds" item="activityId" open="(" close=")" separator="or">
+		          	aa.activityId=#{activityId, jdbcType=NUMERIC}
+		          </foreach>
+		          )
+	    	  </if>
+	    	  <if test="phoneNumbers != null"> 
+	    	      and (
+		          <foreach collection="phoneNumbers" item="phoneNumber" open="(" close=")" separator="or">
+		          	phoneNumber like '%'||#{phoneNumber, jdbcType=VARCHAR}||'%'
+		          </foreach>
+		          )
+	    	  </if>
+	    	  <if test="createUser != null"> and createUser=#{createUser}</if>
+	    	  <if test="activityProvince != null and activityProvince.length != 0">
+	    	      and (
+		          <foreach collection="activityProvince" item="province" open="(" close=")" separator="or">
+		          	 usa.province like '%'||#{province}||'%'
+		          </foreach>
+		          )
+		      </if>
+		      <if test="awardTypeIds != null and awardTypeIds.length != 0">
+	    	      and (
+		          <foreach collection="awardTypeIds" item="prizeId" open="(" close=")" separator="or">
+		          	 prizeId=#{prizeId, jdbcType=NUMERIC}
+		          </foreach>
+		          )
+		      </if>
+	          <if test="activityApplyCode != null and activityApplyCode.length != 0">
+	    	      and (
+		          <foreach collection="activityApplyCode" item="applyCode" open="(" close=")" separator="or">
+		          	regexp_like(activityApplyCode, '(^|,)'||#{applyCode}||'($|,)')
+		          </foreach>
+		          )
+		      </if>
+		      <if test="startTime != null"> and earnTime<![CDATA[>=]]>#{startTime, jdbcType=TIMESTAMP}</if>
+		      <if test="endTime != null"> and earnTime<![CDATA[<]]>#{endTime, jdbcType=TIMESTAMP}</if>
+		      and aa.activityName = uja.activityName
+		      and ap.prizeName = uea.awardType
+		      and uea.RECORDID = uja.RECORDID  
+		      and usa.SEARCHID = uja.SEARCHID
+		      group by phoneNumber, province, applycode, aa.activityName, awardType
+		      
+		      order by province desc, applycode desc, awardType desc, NUMBERFORAWARD desc
+  </select>
+</mapper>

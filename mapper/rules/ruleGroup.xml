@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="indi.shuyu.model.dao.RuleDao">
+ 
+ <resultMap id="BaseResultMap" type="indi.shuyu.model.entity.RuleGroup" >
+    <id     column="ruleGroupId"     property="ruleGroupId"         javaType="long"   jdbcType="NUMERIC" />
+    <result column="ruleGroupNameCN"   property="ruleGroupNameCN"   javaType="String" jdbcType="VARCHAR" />
+    <result column="isCommonGroup"   property="isCommonGroup"   javaType="int"   jdbcType="NUMERIC" />
+ </resultMap>
+ <sql id="RuleGroupColumn" >
+    ruleGroupId, ruleGroupNameCN, isCommonGroup
+ </sql>
+ <select id="selectRuleGroupAll" resultMap="BaseResultMap">
+    select 
+    <include refid="RuleGroupColumn"  />
+    from ACTIVITY_RULE_GROUPS
+    where isExclusive=#{isExclusive}
+    order by ruleGroupWeight asc
+ </select>
+ 
+</mapper>

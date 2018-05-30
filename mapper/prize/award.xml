@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="indi.shuyu.model.dao.AwardDao">
+
+ <sql id="AwardColumn" >
+    prizeId, activityId, awardNum, numStart, numEnd, distance, createTime
+ </sql>
+ <insert id="insertAward">
+     insert into ACTIVITY_AWARD(<include refid="AwardColumn"  />) 
+     values(#{prizeId, jdbcType=NUMERIC}, #{activityId, jdbcType=NUMERIC}, #{awardNum, jdbcType=NUMERIC},#{numStart, jdbcType=NUMERIC},#{numEnd, jdbcType=NUMERIC},#{distance, jdbcType=NUMERIC}, #{createTime, jdbcType=TIMESTAMP})
+ </insert>
+ 
+ <resultMap id="AwardResultMap" type="indi.shuyu.model.entity.Award" >
+    <id     column="awardId"     property="awardId"     javaType="long"   jdbcType="NUMERIC" />
+    <result column="prizeId"     property="prizeId"     javaType="long"   jdbcType="NUMERIC" />
+    <result column="activityId"  property="activityId"  javaType="long"   jdbcType="NUMERIC" />
+    <result column="awardNum"    property="awardNum"    javaType="int"    jdbcType="NUMERIC" />
+    <result column="numStart"       property="numStart"       javaType="int"    jdbcType="NUMERIC" />
+    <result column="numEnd"         property="numEnd"         javaType="int"    jdbcType="NUMERIC" />
+    <result column="distance"    property="distance"    javaType="int"    jdbcType="NUMERIC" />
+    <result column="createTime"  property="createTime"  javaType="java.sql.Timestamp" jdbcType="TIMESTAMP"/>
+ </resultMap>
+ 
+ <select id="selectAwardByActivityId" resultType="long">
+    select 
+    prizeId
+    from ACTIVITY_AWARD 
+    where activityId=#{activityId}
+ </select>
+ <select id="selectPrizeByActivityId" resultType="long">
+    select 
+    ACTIVITY_PRIZE.prizeId as prizeId, ACTIVITY_PRIZE.prizeName as prizeName
+   	from ACTIVITY_AWARD, ACTIVITY_PRIZE
+    where  ACTIVITY_AWARD.prizeId = ACTIVITY_PRIZE.prizeId and ACTIVITY_AWARD.activityId=#{arg0}
+ </select>
+ <update id="updateAward">
+ 	update ACTIVITY_AWARD
+ 	<set>
+ 		<if test="numStart != null">numStart=#{numStart, jdbcType=NUMERIC},</if>
+ 		<if test="numEnd != null">numEnd=#{numEnd, jdbcType=NUMERIC},</if>
+ 		<if test="distance != null">distance=#{distance, jdbcType=NUMERIC}</if>
+ 	</set>
+ 	where activityId=#{activityId, jdbcType=NUMERIC} and prizeId = #{prizeId, jdbcType=NUMERIC}
+ </update>
+ <delete id="deleteAwardByActivityId">
+ 	 delete from ACTIVITY_AWARD where activityId=#{arg0}
+ </delete>
+ <select id="selectLeftAwardNumByActivityName" resultType="java.util.HashMap">
+    select activityId as "activityId", prizeName as "prizeName", awardNum as "awardNum"
+    from activity_prize p, activity_award a
+    where 
+   		<foreach collection="list" item="l" open="(" close=")" separator="or">
+      	 activityId = #{l}
+        </foreach>
+   	     and p.prizeId = a.prizeid
+  </select>
+  
+  <resultMap id="AwardDetailResultMap" type="indi.shuyu.model.entity.Award" >
+  	<result column="activityId"  property="activityId"  javaType="long"   jdbcType="NUMERIC" />
+    <result column="awardId"     property="awardId"     javaType="long"   jdbcType="NUMERIC" />
+    <result column="prizeName"     property="prizeName"     javaType="string"   jdbcType="VARCHAR" />
+    <result column="awardNum"    property="awardNum"    javaType="int"    jdbcType="NUMERIC" />
+    <result column="numStart"       property="numStart"       javaType="int"    jdbcType="NUMERIC" />
+    <result column="numEnd"         property="numEnd"         javaType="int"    jdbcType="NUMERIC" />
+    <result column="distance"    property="distance"    javaType="int"    jdbcType="NUMERIC" />
+ </resultMap>
+ <select id="selectAwardInfoByActivityId" resultType="indi.shuyu.model.entity.Award">
+    select 
+    	activityId, awardId, prizeName, awardNum, numStart, numEnd, distance
+    from activity_prize p, activity_award a
+    where activityId = #{arg0}
+   	      and p.prizeId = a.prizeId
+   	      order by awardNum desc
+  </select>
+  
+  <update id="updateAwardNum">
+ 	update activity_award
+ 	set awardNum=awardNum-#{arg1}
+ 	where awardId=#{arg0} and awardNum<![CDATA[>=]]>#{arg1}
+  </update>
+  
+  <update id="updateAA">
+ 	update AA
+ 	set name=name-#{arg1}
+ 	where id=#{arg0} and name<![CDATA[>=]]>#{arg1}
+  </update>
+  
+  <select id="selectAwardByPrizeIds" parameterType="list" resultType="indi.shuyu.model.entity.Award">
+    select 
+    	activityId, awardId, prizeName, awardNum, numStart, numEnd, distance
+    from activity_prize p, activity_award a
+    where p.prizeId = a.prizeId and
+		  <foreach collection="list" item="l" open="(" close=")" separator="or">
+      	  	a.prizeId = #{l}
+          </foreach>
+   	      order by awardNum desc
+  </select>
+  
+  
+</mapper>

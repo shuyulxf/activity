@@ -1,0 +1,406 @@
+package indi.shuyu.rules;
+
+import java.util.*;
+import indi.shuyu.model.entity.User;
+import indi.shuyu.actionresult.entity.RuleExResult;
+import indi.shuyu.actionresult.entity.ActivityExResult;
+import indi.shuyu.core.rules.GlobalFuncForRules;
+import indi.shuyu.core.rules.RuleRelatedDaoSourceFunc;
+import indi.shuyu.model.entity.Activity;
+import indi.shuyu.common.base.Base;
+import indi.shuyu.common.base.JacksonUtils;
+import java.sql.Timestamp;
+import indi.shuyu.common.base.StringUtils;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import indi.shuyu.model.entity.Cache;
+
+rule "TRIGER_WHEN_USER_PASS_FINAL_QUALIFICATION_CHECK112"
+   agenda-group "112"
+   lock-on-active true
+   activation-group "USER_PASS_FINAL_QULIFICATION_ACTIVATION_GROUP"
+   salience 90
+when 
+   	 $params: User()
+   	 $activity: Activity()
+   	 $aer: ActivityExResult()
+   	 $rrds: RuleRelatedDaoSourceFunc()
+then
+         $aer.setStatus(0);
+	 $aer.setMsg("当前用户通过该活动终审资格审查");
+	 boolean rlt =$rrds.insertJoinInfoForUser($params, 1, JacksonUtils.toJSONString($aer)); 
+	 if (!rlt) $aer.setInfo("插入当前用户的参与活动结果记录失败，请查看原因！");
+end
+
+function boolean isAnswerRight_112(String q, JSONArray options, String answer, RuleRelatedDaoSourceFunc $rrds) {
+
+	return $rrds.judgeAnswerIsRight(q, options, answer);
+}
+
+rule "PRIZE_QUIZACTIVITY_SELFRULEVALIDATION_SUC_RULE112"
+   agenda-group "112"
+   lock-on-active true
+   activation-group "PRIZE_QUIZACTIVITY_SELFRULEVALIDATION_RULE_GROUP"
+   salience 94
+when
+	$user: User()
+	$activity: Activity(activityType == "有奖问答" || activityType == "闯关游戏")
+	$aer: ActivityExResult()
+	$rrds: RuleRelatedDaoSourceFunc()
+	$rer: RuleExResult()
+then
+	int defaultState = 3;
+
+	int status = $rer.getStatus();
+	if ("有奖问答".equals($activity.getActivityType())) status = defaultState;
+
+	String sessionId = $user.getSessionId();
+	Cache c = $rrds.getCache(sessionId);
+	String questionStr = "";
+	JSONObject infos = null;
+	int state = -1;
+	int idx = -1;
+	int activityIndex = -1;
+	int activityLength = 0;
+
+	if (status == 4) {
+		if (c == null) {
+			$aer.setMsg("闯关游戏状态异常，请稍后重试");
+			$rrds.removeCache(sessionId);
+			$aer.setStatus(1);
+			drools.halt();
+		} else {
+		
+			infos = c.getInfos();
+
+			idx = Integer.parseInt(infos.getString("quesSeq"));
+			state = infos.getInteger("state");
+			activityIndex = infos.getInteger("activityIndex");
+			String activityListStr = $activity.getAGS().getString("PassThroughActivityList");
+			JSONArray activityList = JSON.parseArray(activityListStr);
+			activityLength = activityList.size();
+			JSONObject activity = activityList.getJSONObject(activityIndex);
+			questionStr = activity.getString("attributes"); 
+		}
+	} else if (status == defaultState){
+		questionStr = $activity.getAGS().getString("activityQuestions");
+	} 
+
+	if (status == 4 || status == defaultState) {
+		if (questionStr == null || "".equals(questionStr)) {
+			$aer.setInfo("有奖问答的问题未设置");
+			$rrds.removeCache(sessionId);
+			$aer.setStatus(1);
+			drools.halt();
+		} else {
+			JSONArray questions = JSON.parseArray(questionStr);
+			int ql = questions.size();
+			if ((c != null && status == defaultState) || (status != defaultState && idx != -1)) {
+
+				if (infos == null) infos = c.getInfos();
+				if (idx == -1) idx = Integer.parseInt(infos.getString("quesSeq"));
+				if (state == -1) state = Integer.parseInt(infos.getString("state"));
+
+				if ((System.currentTimeMillis() - c.getT()) / (1000 * 60) > 10) {
+					$aer.setInfo("您参加的有奖问答活动已经超时，请重新开始");
+					$rrds.removeCache(sessionId);
+					$aer.setStatus(1);
+					drools.halt();
+				} else {
+
+					JSONObject question = questions.getJSONObject(idx);
+					JSONArray options = question.getJSONArray("options");
+	                String answer = question.getString("answer");
+					String q = $user.getQuery();
+					
+					if (isAnswerRight_112(q, options, answer , $rrds)) {
+						++idx;
+						if (idx >= ql) {
+							if(status == defaultState) {
+								$aer.setMsg("成功完成有奖问答");
+								$rrds.removeCache(sessionId);
+								$aer.setStatus(0);
+							} else {
+								if (activityIndex == activityLength - 1) {
+									$aer.setMsg("成功完成闯关游戏");
+									$rrds.removeCache(sessionId);
+									$aer.setStatus(0);
+								} else {
+									$aer.setMsg("成功闯过第" + (activityIndex+1) + "关：有奖问答");
+									$rrds.updateCache(sessionId, activityIndex + 1, 0, 2);
+									$aer.setStatus(status);
+									drools.halt();
+								}	
+							}
+						} else {
+							$aer.setMsg($rrds.getPrizeQuizQuestion(questions.getJSONObject(idx)));
+							$rrds.updateCache(sessionId, idx, defaultState, 1);
+							$aer.setStatus(status);
+							drools.halt();
+						}
+					} else {
+						String msg = "";
+						if(status == defaultState) {
+							msg = "回答错误，有奖问答结束";
+						} else {
+							msg = "闯关游戏的第" + (activityIndex + 1) + "关“有奖问答”回答错误，闯关游戏结束";
+						}
+						$aer.setMsg(msg);
+						$rrds.removeCache(sessionId);
+						$aer.setStatus(1);
+						drools.halt();
+					}
+				}
+			} else {
+				
+				System.out.println("第一次答题："+activityIndex);
+				if (ql == 0) {
+					$aer.setInfo("有奖问答的问题未设置");
+					$aer.setStatus(1);
+				} else {
+					String ques = $rrds.getPrizeQuizQuestion(questions.getJSONObject(0));
+					$aer.setMsg(ques);
+					if (status == defaultState) {
+						$rrds.addNewCache($user, $activity, status, 0, defaultState, 1);
+					} else {
+						$rrds.updateCache(sessionId, 0, defaultState, 1);
+					}
+				}
+				drools.halt();
+			}
+		}
+	}
+end
+
+rule "PASS_THROUGH_ACTIVITY_SELFRULEVALIDATION_SUC_RULE112"
+   agenda-group "112"
+   lock-on-active true
+   activation-group "PASSTHROUGH_ACTIVITY_SELFRULEVALIDATION_RULE_GROUP"
+   salience 95
+when
+	$user: User()
+	$activity: Activity(activityType == "闯关游戏")
+	$aer: ActivityExResult()
+	$rrds: RuleRelatedDaoSourceFunc()
+	$rer: RuleExResult()
+then
+
+	int status = 4;
+	String sessionId = $user.getSessionId();
+	Cache c = $rrds.getCache(sessionId);
+	JSONObject infos = null;
+	int activityIndex = -1;
+	String activityListStr = $activity.getAGS().getString("PassThroughActivityList");
+	String type = "";
+	int state = -1;
+
+	if (activityListStr == null || "".equals(activityListStr)) {
+		$aer.setInfo("闯关游戏的游戏列表未设置");
+		$rrds.removeCache(sessionId);
+		$aer.setStatus(1);
+		drools.halt();
+	} else {
+
+		JSONArray activityList = JSON.parseArray(activityListStr);
+		int al = activityList.size();
+
+		if (c != null) {
+
+			if ((System.currentTimeMillis() - c.getT()) / (1000 * 60) > 10) {
+				$aer.setInfo("您参加的闯关游戏已经超时，请重新开始");
+				$rrds.removeCache(sessionId);
+				$aer.setStatus(1);
+				drools.halt();
+			} else {
+
+				infos = c.getInfos();
+				activityIndex = infos.getInteger("activityIndex");
+
+				JSONObject activity = activityList.getJSONObject(activityIndex);
+				type = activity.getString("type");
+				if ("有奖问答".equals(type)) {
+					state = 3;
+					$rrds.updateCache(sessionId, activityIndex, state, 2);
+				} else {
+					state = 0;
+					if(activityIndex < al - 1) {
+						activityIndex++;
+						$aer.setMsg("成功闯过第" + activityIndex + "关：" + type + "活动");
+						$rrds.updateCache(sessionId, activityIndex, state, 2);
+						$aer.setStatus(status);
+						drools.halt();
+					}
+					else {
+						$aer.setMsg("成功完成闯关游戏");
+						$rrds.removeCache(sessionId);
+						$rer.setStatus(0);
+						$aer.setStatus(0);
+					} 
+				}
+			}
+		} else {
+		
+			// 第一次闯关
+			if (al == 0) {
+				$aer.setInfo("闯关游戏的游戏列表未设置");
+				$aer.setStatus(1);
+				drools.halt();
+			} else {
+				JSONObject typeObj = activityList.getJSONObject(0);
+				type = typeObj.getString("type");
+				int idx = 0;
+
+				if ("有奖问答".equals(type)) {
+					$rer.setStatus(status);
+					$rrds.addNewCache($user, $activity, status, idx, 3, 2);
+				} else {
+					$aer.setMsg("成功闯过第1关：" + type + "活动");
+					$rrds.addNewCache($user, $activity, status, ++idx, 0, 2);
+					drools.halt();
+				}
+			}
+			
+		}
+	}
+end
+
+function boolean isValidRate_112(String rateStr, User u) {
+
+	if (rateStr == null || rateStr.length() == 0) return false;
+
+	double rate = Double.valueOf(rateStr).doubleValue();
+	System.out.println(rate);
+	double r = GlobalFuncForRules.getRandomRate();
+	if (r < 1 - rate) return false;
+	u.setRate(r);
+	
+	return true;
+}
+
+rule "USER_IF_OR_NOT_SATISFY_ACTIVITY_AWARD_RATE_FAIL112"
+   agenda-group "112"
+   lock-on-active true
+   activation-group "ACTIIVTY_USER_EARN_AWARD_RATE_ACTIVATION_GROUP"
+   salience 87
+when 
+     $user: User()
+   	 $activity: Activity()
+   	 $aer: ActivityExResult()
+ 	  not (eval(isValidRate_112($activity.getAAS().getString("earnAwardRate"), $user)))
+then
+         $aer.setStatus(1);
+	 String[] formAttrs = {"earnAwardRate"};
+	 String reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 0);
+	 if (reply.length() < 1) reply = "该用户未通过中奖概率验证";
+	 $aer.setMsg(reply);
+	 
+	 drools.halt();
+end
+
+function boolean ifSendAward_112(Activity $activity) {
+    String type = $activity.getAAS().getString("activityAwardDeliveryType");
+    if (type == null) return false;
+	if (type.equals("直接发放奖品")) {
+		JSONArray al = $activity.getAAS().getJSONArray("activityAwardList");
+		if (al == null || al.size() == 0) return false;
+	}
+	
+	return false;
+}
+
+rule "SEND_AWARD_FOR_USER_SUC112"
+   agenda-group "112"
+   lock-on-active true
+   activation-group "SEND_AWARD_TO_USER_ACTIVATION_GROUP"
+   salience 82
+when 
+   	 $activity: Activity()
+   	 $aer: ActivityExResult()
+   	 $params: User()
+   	 $rrds: RuleRelatedDaoSourceFunc()
+ 	 not (eval(ifSendAward_112($activity)))
+then
+
+	boolean rlt = $rrds.insertAwardInfoForUser($params, $activity, false);
+	 String[] formAttrs = {"activityAwardDeliveryType"};
+	 int awardNum = 0;
+	 String awardType = ""; 
+	 String reply = "";
+	 String awardNumStr = "";
+	 if (rlt) {
+	  	$aer.setStatus(0);
+	  	awardType = $params.getAwardType();
+	  	awardNum = $params.getNumberForAward();
+	  	reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 0);
+	  	
+	  	
+	    if (awardType.equals("充值卡")) awardNumStr = awardNum + "" +  "元";
+	    else awardNumStr = awardNum +  ""  +  "个";
+	    
+	    if (reply.length() > 0) {
+	 
+		    reply = reply.replaceFirst("#prizeName#", awardType);
+	 	    reply = reply.replaceFirst("#prizeNum#", awardNumStr);
+		 } else {
+		 	reply = "恭喜您获得" +  awardNumStr  + awardType; 
+		 }
+		 
+	 } else {
+	 	$aer.setStatus(1);
+	 	reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 1);
+	 	if (reply.length() == 0) {
+	 		reply = "奖品已经发放完毕"; 
+	 	}
+	 }
+	 
+	 $aer.setMsg(reply);
+	 
+	 if(!rlt) {
+	 	drools.halt();
+	 }
+end
+
+rule "SEND_AWARD_FOR_USER_FAIL112"
+   agenda-group "112"
+   lock-on-active true
+   activation-group "SEND_AWARD_TO_USER_ACTIVATION_GROUP"
+   salience 82
+when 
+   	 $activity: Activity()
+   	 $aer: ActivityExResult()
+ 	 not (eval(ifSendAward_112($activity)))
+then
+         $aer.setStatus(1);
+	 String[] formAttrs = {"activityAwardDeliveryType"};
+	 String reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 1);
+	 if (reply.length() < 1) reply = "该活动发放单次奖品失败，请检查奖品设置是否正确";
+	 $aer.setMsg(reply);
+	 
+	 drools.halt();
+end
+
+function boolean isNotSetAward_112(String type) {
+	if (type.equals("不设置奖品")) return true;
+	return false;
+}
+
+rule "ACTIVIY_WITH_NO_AWARD112"
+   agenda-group "112"
+   lock-on-active true
+   activation-group "ACTIVITY_SEND_AWARD_TYPE_ACTIVATION_GROUP"
+   salience 89
+when 
+   	 $activity: Activity()
+   	 $aer: ActivityExResult()
+ 	 eval(isNotSetAward_112($activity.getAAS().getString("activityAwardDeliveryType")))
+then
+         $aer.setStatus(0);
+	 String[] formAttrs = {"activityAwardDeliveryType"};
+	 String reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 0);
+	 if (reply.length() < 1) reply = "该活动未设置奖品";
+	 $aer.setMsg(reply);
+	 
+	 drools.halt();
+end
+

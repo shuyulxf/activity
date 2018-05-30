@@ -1,0 +1,76 @@
+package indi.shuyu.rules;
+
+import java.util.*;
+import indi.shuyu.model.entity.User;
+import indi.shuyu.actionresult.entity.RuleExResult;
+import indi.shuyu.actionresult.entity.ActivityExResult;
+import indi.shuyu.core.rules.GlobalFuncForRules;
+import indi.shuyu.core.rules.RuleRelatedDaoSourceFunc;
+import indi.shuyu.model.entity.Activity;
+import indi.shuyu.common.base.Base;
+import indi.shuyu.common.base.JacksonUtils;
+import java.sql.Timestamp;
+import indi.shuyu.common.base.StringUtils;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import indi.shuyu.model.entity.Cache;
+
+rule "ACTIVITY_PARTICIPANT_IS_IN_PASSTHROUGH_ACTIVITY_RULE"
+   agenda-group "common-rule-group"
+   lock-on-active true
+   activation-group "ACTIVITY_PARTICIPANT_STATE_RULE_GROUP"
+   salience 110
+when
+  $rrds: RuleRelatedDaoSourceFunc()
+  $rer: RuleExResult()
+  $user: User()
+then
+  String sessionId = $user.getSessionId();
+  Cache c = $rrds.getCache(sessionId);
+  if (c != null) {
+    $rer.setStatus(c.getStatus());
+  }
+end
+
+rule "CHECK_LOGIN_FAIL"
+   agenda-group "common-rule-group"
+   lock-on-active true
+   activation-group "CHECK_LOGIN_ACTIVATION_GROUP"
+   salience 118
+when
+    	$rer: RuleExResult()
+        eval(true)
+    then
+     	$rer.setStatus(1);
+     	$rer.setMsg("活动参与者为未登录用户，请先登录");
+     	drools.halt();
+end
+
+
+import indi.shuyu.common.base.JavaWebServiceHelper;
+function boolean isLoginUser(User params){
+	String[] args = new String[2];
+	args[0] = params.getToken();
+	args[1] = params.getPhoneNumber();
+	String res = JavaWebServiceHelper.InvokeWebService(
+				 "http://xiaozhi.189.cn:8082/SingleLoginInInterface/SingleLoginWSPort?wsdl",
+				 "http://SingleLoginAtIM/", "tokenChecker", args);
+				 
+    return !"success".equals(res);
+}
+
+rule "CHECK_LOGIN_SUCCESS"
+   agenda-group "common-rule-group"
+   lock-on-active true
+   activation-group "CHECK_LOGIN_ACTIVATION_GROUP"
+   salience 119
+when
+   	$params: User()
+   	$rer: RuleExResult()
+        eval(isLoginUser($params))
+ then
+    	$rer.setStatus(0); 
+        $rer.setMsg("活动参与者登录验证成功");
+end
+

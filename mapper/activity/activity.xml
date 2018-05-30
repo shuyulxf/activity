@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="indi.shuyu.model.dao.ActivityAttrDao">
+  <resultMap id="ActivityResultMap" type="indi.shuyu.model.entity.Activity" >
+    <id     column="activityId"             property="activityId"             javaType="long"   jdbcType="NUMERIC" />
+    <result column="activityName"           property="activityName"           javaType="String" jdbcType="VARCHAR" />
+    <result column="activityType"           property="activityType"           javaType="String" jdbcType="VARCHAR" />
+    <result column="activityProvince"       property="activityProvince"       javaType="String" jdbcType="VARCHAR" />
+    <result column="activityApplyCode"      property="activityApplyCode"      javaType="String" jdbcType="VARCHAR" />
+    <result column="activityStartTime"      property="activityStartTime"      javaType="java.sql.Timestamp"  jdbcType="TIMESTAMP" />
+    <result column="activityEndTime"        property="activityEndTime"        javaType="java.sql.Timestamp"  jdbcType="TIMESTAMP" />
+    <result column="activityCommonSetting"  property="activityCommonSetting"  javaType="java.lang.String"  jdbcType="VARCHAR"/>
+    <result column="activityGeneralSetting" property="activityGeneralSetting" javaType="java.lang.String"    jdbcType="VARCHAR" />
+    <result column="activityAwardSetting"   property="activityAwardSetting"   javaType="java.lang.String"    jdbcType="VARCHAR" />
+    <result column="activityReplySetting"   property="activityReplySetting"   javaType="java.lang.String"    jdbcType="VARCHAR" />
+    <result column="ruleIds"                property="ruleIds"                javaType="String"              jdbcType="VARCHAR" />
+    <result column="createUser"    property="createUser"   javaType="String"             jdbcType="VARCHAR" />
+    <result column="createTime"    property="createTime"   javaType="java.sql.Timestamp" jdbcType="TIMESTAMP"/>
+ </resultMap>
+ 
+ <sql id="ActivityColumn" >
+     activityId, activityName, activityType, activityProvince, activityApplyCode, activityStartTime, activityEndTime, activityCommonSetting, activityGeneralSetting, activityAwardSetting, activityReplySetting, ruleIds, createUser, createTime
+ </sql>
+ 
+ <insert id="insertActivity" parameterType="indi.shuyu.model.entity.Activity"> 
+ 	 <selectKey resultType="Long" order="BEFORE" keyProperty="activityId">  
+         SELECT ACTIVITY_ATTRIBUTES_SEQ.NEXTVAL as activityId from DUAL
+     </selectKey>
+     insert into ACTIVITY_ATTRIBUTES(
+      <include refid="ActivityColumn" />
+     ) 
+	 values(#{activityId}, #{activityName}, #{activityType}, #{activityProvince, jdbcType=VARCHAR}, #{activityApplyCode, jdbcType=VARCHAR}, #{activityStartTime, jdbcType=VARCHAR}, #{activityEndTime, jdbcType=VARCHAR}, #{activityCommonSetting, jdbcType=CLOB}, #{activityGeneralSetting, jdbcType=CLOB}, #{activityAwardSetting, jdbcType=CLOB}, #{activityReplySetting, jdbcType=CLOB}, #{ruleIds, jdbcType=VARCHAR}, #{createUser}, #{createTime})
+ </insert>
+ <update id="updateActivity" parameterType="indi.shuyu.model.entity.Activity">
+ 	update ACTIVITY_ATTRIBUTES
+ 	<set>
+ 		<if test="activityName != null">activityName=#{activityName},</if>
+ 		<if test="activityType != null">activityType=#{activityType},</if>
+ 		<if test="activityProvince != null">activityProvince=#{activityProvince},</if>
+ 		<if test="activityApplyCode != null">activityApplyCode=#{activityApplyCode},</if>
+ 		<if test="activityStartTime != null">activityStartTime=#{activityStartTime},</if>
+ 		<if test="activityEndTime != null">activityEndTime=#{activityEndTime},</if>
+ 		<if test="activityCommonSetting != null">activityCommonSetting=#{activityCommonSetting,jdbcType=CLOB},</if>
+ 		<if test="activityGeneralSetting != null">activityGeneralSetting=#{activityGeneralSetting,jdbcType=CLOB},</if>
+ 		<if test="activityAwardSetting != null">activityAwardSetting=#{activityAwardSetting,jdbcType=CLOB},</if>
+ 		<if test="activityReplySetting != null">activityReplySetting=#{activityReplySetting,jdbcType=CLOB},</if>
+ 		<if test="ruleIds != null">ruleIds=#{ruleIds}</if>
+ 	</set>
+ 	where activityId=#{activityId} 
+ 	<if test="createUser != null">and createUser=#{createUser}</if>
+ </update>
+ <delete id="deleteActivity">
+ 	 delete from ACTIVITY_ATTRIBUTES where activityId=#{arg0} <if test="arg1 != null">and createUser=#{arg1}</if>
+ </delete>
+ <select id="selectActivityById" resultType="indi.shuyu.model.entity.Activity" >
+    select  <include refid="ActivityColumn" />
+    from ACTIVITY_ATTRIBUTES
+    where <if test="arg1 != null">createUser=#{arg1} and </if> activityId=#{arg0}
+ </select>
+ <select id="selectActivityTotalNumber" resultType="long" parameterType="indi.shuyu.model.entity.Search">
+    select  count(activityId)
+    from ACTIVITY_ATTRIBUTES
+    where 1=1
+    	  <if test="activityIds != null"> 
+    	      and (
+	          <foreach collection="activityIds" item="activityId" open="(" close=")" separator="or">
+	          	activityId=#{activityId, jdbcType=NUMERIC}
+	          </foreach>
+	          )
+    	  </if>
+    	  <if test="createUser != null"> and createUser=#{createUser}</if>
+    	  <if test="activityProvince != null and activityProvince.length != 0">
+    	      and (
+	          <foreach collection="activityProvince" item="province" open="(" close=")" separator="or">
+	          	 activityProvince like '%'||#{province}||'%'
+	          </foreach>
+	          )
+	      </if>
+          <if test="activityApplyCode != null and activityApplyCode.length != 0">
+    	      and (
+	          <foreach collection="activityApplyCode" item="applyCode" open="(" close=")" separator="or">
+	          	regexp_like(activityApplyCode, '(^|,)'||#{applyCode}||'($|,)')
+	          </foreach>
+	          )
+	      </if>
+	      <if test="status == 0"> and (activityStartTime<![CDATA[<=]]>#{sysTime, jdbcType=TIMESTAMP} and activityEndTime<![CDATA[>]]>#{sysTime, jdbcType=TIMESTAMP})</if>
+	      <if test="status == 1"> and activityStartTime<![CDATA[>]]>#{sysTime, jdbcType=TIMESTAMP}</if>
+		  <if test="status == 2"> and activityEndTime<![CDATA[<]]>#{sysTime, jdbcType=TIMESTAMP}</if>
+		  <if test="startTime != null"> and activityStartTime<![CDATA[>=]]>#{startTime, jdbcType=TIMESTAMP}</if>
+		  <if test="endTime != null"> and activityEndTime<![CDATA[<=]]>#{endTime, jdbcType=TIMESTAMP}</if>
+ </select>
+ 
+ <select id="selectActivityList" resultMap="ActivityResultMap"  parameterType="indi.shuyu.model.entity.Search">
+    select  <include refid="ActivityColumn" />
+    from  (select a.*, rownum rnum from (
+    select * from ACTIVITY_ATTRIBUTES
+    where 1=1
+    	  <if test="activityIds != null"> 
+    	      and (
+	          <foreach collection="activityIds" item="activityId" open="(" close=")" separator="or">
+	          	activityId=#{activityId, jdbcType=NUMERIC}
+	          </foreach>
+	          )
+    	  </if>
+    	  <if test="createUser != null"> and createUser=#{createUser}</if>
+    	  <if test="activityProvince != null and activityProvince.length != 0">
+    	      and (
+	          <foreach collection="activityProvince" item="province" open="(" close=")" separator="or">
+	          	 activityProvince like '%'||#{province}||'%'
+	          </foreach>
+	          )
+	      </if>
+          <if test="activityApplyCode != null and activityApplyCode.length != 0">
+    	      and (
+	          <foreach collection="activityApplyCode" item="applyCode" open="(" close=")" separator="or">
+	          	regexp_like(activityApplyCode, '(^|,)'||#{applyCode}||'($|,)')
+	          </foreach>
+	          )
+	      </if>  
+	      <if test="status == 0"> and (activityStartTime<![CDATA[<=]]>#{sysTime, jdbcType=TIMESTAMP} and activityEndTime<![CDATA[>]]>#{sysTime, jdbcType=TIMESTAMP})</if> 
+    	  <if test="status == 1"> and activityStartTime<![CDATA[>]]>#{sysTime, jdbcType=TIMESTAMP}</if>
+		  <if test="status == 2"> and activityEndTime<![CDATA[<]]>#{sysTime, jdbcType=TIMESTAMP}</if>
+		  <if test="startTime != null"> and activityStartTime<![CDATA[>=]]>#{startTime, jdbcType=TIMESTAMP}</if>
+		  <if test="endTime != null"> and activityEndTime<![CDATA[<=]]>#{endTime, jdbcType=TIMESTAMP}</if>
+    ) a)
+    where rnum<![CDATA[>]]>#{start} and rnum<![CDATA[<=]]>#{end}
+ </select>
+ 
+ <select id="selectNotOffLineActivityList" resultMap="ActivityResultMap">
+    select  <include refid="ActivityColumn" />
+    from ACTIVITY_ATTRIBUTES
+    where activityEndTime<![CDATA[>]]>#{arg0, jdbcType=TIMESTAMP}
+ </select>
+ 
+ <select id="selectAllActivityIdAndMapForUser" resultType="java.util.HashMap">
+    select  activityId as "id", activityName as "value"
+    from ACTIVITY_ATTRIBUTES
+    where 1=1<if test="createUser != null">and createUser=#{createUser}</if>
+ </select>
+</mapper>

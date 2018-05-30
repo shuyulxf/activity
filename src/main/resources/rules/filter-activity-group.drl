@@ -1,0 +1,180 @@
+package indi.shuyu.rules;
+
+import java.util.*;
+import indi.shuyu.model.entity.User;
+import indi.shuyu.actionresult.entity.RuleExResult;
+import indi.shuyu.actionresult.entity.ActivityExResult;
+import indi.shuyu.core.rules.GlobalFuncForRules;
+import indi.shuyu.core.rules.RuleRelatedDaoSourceFunc;
+import indi.shuyu.model.entity.Activity;
+import indi.shuyu.common.base.Base;
+import indi.shuyu.common.base.JacksonUtils;
+import java.sql.Timestamp;
+import indi.shuyu.common.base.StringUtils;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import indi.shuyu.model.entity.Cache;
+
+rule "TRIGER_WHEN_USER_PASS_ACTIVITY_COMMON_ATTRS_CHECK"
+   agenda-group "filter-activity-group"
+   lock-on-active true
+   activation-group "USER_PASS_ACTIVITY_COMMON_ACTIVATION_GROUP"
+   salience 100
+when 
+   	 $aer: ActivityExResult()
+then
+         $aer.setStatus(0);
+	 String msg = "当前用户通过该活动通用属性的审查";
+	 $aer.setMsg(msg);
+end
+
+function boolean isKeywords(String iat, String ak, String uk, RuleRelatedDaoSourceFunc $rrds) {
+
+    if ("true".equals(iat)) return true; 
+    
+    if (ak != null && ak.length() > 0 && uk != null && uk.length() > 0) {
+    	String rlt = $rrds.getKeywordMatch(uk, ak);
+     	if ("true".equals(rlt)) return true;
+    }
+		
+	return false;
+}
+
+rule "CHECK_QUERY_SUPLY_ACTIVITY_KEYWORDS_FAIL"
+   agenda-group "filter-activity-group"
+   lock-on-active true
+   activation-group "CHECK_KEYWORD_ACTIVATION_GROUP"
+   salience 105
+when 
+	 $params: User()
+   	 $activity: Activity()
+   	 $aer: ActivityExResult()
+         $rrds: RuleRelatedDaoSourceFunc()
+ 	 not (eval(isKeywords($activity.getACS().getString("isActivityAllKeywordsTriggerType"), $activity.getACS().getString("activityTriggerKeywords"), $params.getQuery(), $rrds)))
+then
+         $aer.setStatus(1);
+ 	 String[] formAttrs = {"activityTriggerKeywords"};
+	 String reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 1);
+	 if (reply.length() < 1) reply = "当前用户不满足活动关键词要求";
+	 $aer.setMsg(reply);
+	 
+	 drools.halt();
+end
+
+function boolean isSearchKeywords(String ak, String uk) {
+	if (ak != null && ak.length() > 0 &&  uk != null &&  uk.length() > 0 &&  
+		(ak.equals(uk) || ak.contains("," + uk) || ak.contains(uk + ","))) return true;
+	return false;
+}
+
+rule "ACTIVITY_USER_SEARCH_HISTORY_BY_HISTORY_KEYWORDS_SUC"
+   agenda-group "filter-activity-group"
+   lock-on-active true
+   activation-group "CHECK_SEARCH_KEYWORD_ACTIVATION_GROUP"
+   salience 106
+when 
+	 $params: User()
+   	 $activity: Activity()
+   	 $aer: ActivityExResult()
+   	 $rrds: RuleRelatedDaoSourceFunc()
+ 	 eval(isSearchKeywords($activity.getACS().getString("activitySearchHistoryKeywords"), $params.getQuery()))
+then
+	 $aer.setStatus(2);
+	 String rlt = $rrds.getAwardHistory($params.getPhoneNumber(), $activity.getActivityName());
+	 if (rlt.length() > 0) {
+	   
+	  	$aer.setMsg(rlt);
+	 }
+	 else {
+	 	 String[] formAttrs = {"activitySearchHistoryKeywords"};
+		 String reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 1);
+		 if (reply.length() < 1) reply = "目前还没有该用户的中奖记录";
+		 $aer.setMsg(reply);
+	 }
+	 
+	 drools.halt();
+end
+
+function boolean isApplyCodeSuit(String aac, String uac) {
+
+	if (aac != null && aac.length() > 0 && uac != null && uac.length() > 0 && 
+		(aac.equals(uac) || aac.contains(","+uac) || aac.contains(uac+","))) return true;
+	return false;
+}
+
+rule "CHECK_APPLYCODE_IS_SUITABLE_FAIL"
+   agenda-group "filter-activity-group"
+   lock-on-active true
+   activation-group "CHECK_APPLYCODE_SUITABLE_ACTIVATION_GROUP"
+   salience 107
+when 
+	 $params: User()
+   	 $activity: Activity()
+   	 $aer: ActivityExResult()
+ 	 not (eval(isApplyCodeSuit($activity.getActivityApplyCode(), $params.getApplyCode())))
+then
+	 $aer.setStatus(1);
+	 
+	 String[] formAttrs = {"activityApplyCode"};
+	 String reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 1);
+	 if (reply.length() < 1) reply = "当前用户所在应用渠道不满足参与该活动的条件";
+	 $aer.setMsg(reply);
+	 
+	 drools.halt();
+end
+
+function boolean isProvinceSuit(String ap, String up) {
+
+	if (ap != null && ap.length() > 0 && up != null && up.length() > 0 && ap.contains(up)) return true;
+	return false;
+}
+
+rule "CHECK_PROVINCE_IS_SUITABLE_FAIL"
+   agenda-group "filter-activity-group"
+   lock-on-active true
+   activation-group "CHECK_PROVINCE_SUITABLE_ACTIVATION_GROUP"
+   salience 108
+when 
+	 $params: User()
+   	 $activity: Activity()
+   	 $aer: ActivityExResult()
+ 	 not (eval(isProvinceSuit($activity.getActivityProvince(), $params.getProvince())))
+then
+	 $aer.setStatus(1);
+	 
+	 String[] formAttrs = {"activityProvince"};
+	 String reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 1);
+	 if (reply.length() < 1) reply = "当前用户所在地市不满足参与该活动的条件";
+	 $aer.setMsg(reply);
+	 
+	 drools.halt();
+end
+
+function boolean isOnline(Timestamp startTime, Timestamp endTime){
+
+	Timestamp t = Base.toTimeStamp();
+	if (t.before(startTime) || t.after(endTime)) return false;
+	return true;
+}
+
+rule "CEHCK_ACTIVITY_IS_ONLINE_FAIL"
+   agenda-group "filter-activity-group"
+   lock-on-active true
+   activation-group "CHECK_ACTIVITY_TIME_ACTIVATION_GROUP"
+   salience 109
+when 
+   	 $activity: Activity()
+   	 $aer: ActivityExResult()
+ 	 not (eval(isOnline($activity.getActivityStartTime(), $activity.getActivityEndTime())))
+then
+	 $aer.setStatus(1);
+	 
+	 String[] formAttrs = {"activityStartTime", "activityEndTime"};
+	 String reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 1);
+	 if (reply.length() < 1) reply = "当前活动未上线";
+	 $aer.setMsg(reply);
+	 
+	 drools.halt();
+end
+
