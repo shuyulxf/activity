@@ -2,10 +2,10 @@
 .header { background: rgba(255, 80, 48, 0.8); border-bottom: none; font-size: 16px; color: #fff; }
 .header .navbar-header { margin-top: 5px; margin-bottom: 5px; vertical-align: middle; }
 .header .func-menus { display: table; height: 50px; }
-.header .func-menus, .header .func-menus li { list-style: none; }
-.header .func-menus .iconfont, .header .func-menus li .iconfont { font-size: 20px; }
 .header .func-menus li { font-size: 12px; display: table-cell; vertical-align: middle; text-align: center; padding: 0 15px; border-left: 1px solid rgba(255, 80, 48, 0.9); }
 .header .func-menus li:hover { cursor: pointer; }
+.header .func-menus, .header .func-menus li { list-style: none; }
+.header .func-menus .iconfont, .header .func-menus li .iconfont { font-size: 20px; }
 .header a { color: #fff; }
 .header a:hover { text-decoration: none; }
 

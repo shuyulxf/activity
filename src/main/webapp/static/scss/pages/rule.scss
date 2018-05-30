@@ -1,0 +1,64 @@
+@import "../components/flexText.scss";
+@import "../components/multiselect.scss";
+@import "../common/variables.scss";
+
+.rule {
+	.groupInput {
+		.dropdown { 
+			width: 100%; 
+			.dropdown-toggle { 
+				width: 100%; 
+			}
+			.dropdown-menu {
+				width: 100%; 
+			}
+			.caret { 
+				float: right; 
+				margin-top: 8px; 
+			}
+		}
+	}
+
+	.dropdown {
+		.dropdown-toggle {
+			.btn-value { 
+				padding-right: 15px; 
+				padding-left: 15px; 
+			}
+		}
+	 	.dropdown-menu { 
+	 		min-width: 72px; 
+	 	}
+	}
+
+	.table {
+		td, th {
+			text-align: center;
+		}
+	 	.icon-delete { 
+	 		padding-left: 20px; 
+	 	}
+	 	pre { 
+	 		cursor: pointer; 
+	 	}
+	}
+
+ 	.ruleInput {
+ 		.popover { 
+ 		 	min-width: 118px; 
+ 		}
+ 		.form-control { 
+ 			height: auto; 
+ 		}
+ 	}
+ 
+	.help { 
+	 	padding: 5px 0 0; 
+	 	width: 150px; 
+	}
+
+	.iconfont { 
+		font-size: 14px; 
+		color: $HEADCOLOR; 
+	}
+}

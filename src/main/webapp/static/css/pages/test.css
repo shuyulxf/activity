@@ -3,19 +3,29 @@ span.multiselect-native-select { position: relative; }
 span.multiselect-native-select select { border: 0 !important; clip: rect(0 0 0 0) !important; height: 1px !important; margin: -1px -1px -1px -3px !important; overflow: hidden !important; padding: 0 !important; position: absolute !important; width: 1px !important; left: 50%; top: 30px; }
 
 .multiselect-container { position: absolute; list-style-type: none; margin: 0; padding: 0; }
+
 .multiselect-container .input-group { margin: 5px; }
+
 .multiselect-container > li { padding: 0; }
+
 .multiselect-container > li > a.multiselect-all label { font-weight: bold; }
+
 .multiselect-container > li.multiselect-group label { margin: 0; padding: 3px 20px 3px 20px; height: 100%; font-weight: bold; }
+
 .multiselect-container > li.multiselect-group-clickable label { cursor: pointer; }
+
 .multiselect-container > li > a { padding: 0; }
+
 .multiselect-container > li > a > label { margin: 0; height: 100%; cursor: pointer; font-weight: normal; padding: 3px 20px 3px 40px; }
+
 .multiselect-container > li > a > label.radio, .multiselect-container > li > a > label.checkbox { margin: 0; }
+
 .multiselect-container > li > a > label > input[type="checkbox"] { margin-bottom: 5px; }
 
 .btn-group > .btn-group:nth-child(2) > .multiselect.btn { border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
 
 .form-inline .multiselect-container label.checkbox, .form-inline .multiselect-container label.radio { padding: 3px 20px 3px 40px; }
+
 .form-inline .multiselect-container li a label.checkbox input[type="checkbox"], .form-inline .multiselect-container li a label.radio input[type="radio"] { margin-left: -20px; margin-right: 0; }
 
 .test .page-header { margin-top: 0; text-align: center; }
@@ -26,12 +36,11 @@ span.multiselect-native-select select { border: 0 !important; clip: rect(0 0 0 0
 .test .multiselect-container { width: 330px; }
 .test .multiselect-container li { display: inline-block; width: 160px; }
 
-.modal { /* Border styles */ /* Padding and font style */ /* Alternating background colors */ }
 .modal .tbl { width: 100%; border-collapse: collapse; border: none; border-bottom-width: 1px; border-bottom-style: solid; border-bottom-color: #e6bdbd; }
 .modal .tbl thead, .modal .tbl tr { border: none; border-top-width: 1px; border-top-style: solid; border-top-color: #e6bdbd; }
 .modal .tbl td, .modal .tbl th { padding: 2px 10px; font-size: 12px; font-family: Verdana; color: #b16a68; }
 .modal .tbl tr:nth-child(even) { background: #eed3d2; }
-.modal .tbl tr:nth-child(odd) { background: #FFF; }
+.modal .tbl tr:nth-child(odd) { background: #fff; }
 .modal .tbl tr td:first-child { width: 20%; }
 
 /*# sourceMappingURL=test.css.map */

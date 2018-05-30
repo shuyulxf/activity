@@ -1,0 +1,32 @@
+@import "../common/variables.scss";
+
+.rule-group {
+	.dropdown-toggle {
+		.btn-value { 
+			padding-right: 15px; 
+			padding-left: 15px; 
+		}
+	}
+
+	.dropdown-menu { 
+		min-width: 72px; 
+	}
+	
+	.table {
+		td, th {
+			text-align: center; 
+		}
+	 	.icon-delete { 
+	 		padding-left: 20px; 
+	 	}
+	}
+
+	.iconfont { 
+		font-size: 14px; 
+		color: $HEADCOLOR; 
+	}
+}
+
+#ruleGroupListModal { 
+	z-index: 5000; 
+}

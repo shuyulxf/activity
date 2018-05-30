@@ -1,0 +1,46 @@
+@import "../common/variables.scss";
+
+/* header settings*/
+.header { 
+	
+	background: rgba(255, 80, 48, 0.8); 
+	border-bottom: none; 
+	font-size: 16px; 
+	color: #fff; 
+	.navbar-header {
+		 margin-top: 5px; 
+		 margin-bottom: 5px; 
+		 vertical-align: middle; 
+	}
+	.func-menus { 
+		display: table; 
+		height: 50px; 
+		
+		li {
+			font-size: 12px; 
+			display: table-cell; 
+			vertical-align: middle; 
+			text-align: center; 
+			padding: 0 15px; 
+			border-left: 1px solid $HEADCOLOR-1; 
+			
+			&:hover{
+				cursor: pointer; 
+			}
+		}
+	}
+	.func-menus, .func-menus li {
+		list-style: none; 
+		.iconfont { 
+			font-size: 20px; 
+		}
+	}
+		
+
+	a { 
+		color: #fff; 
+		&:hover { 
+			text-decoration: none; 
+		}
+	}
+}

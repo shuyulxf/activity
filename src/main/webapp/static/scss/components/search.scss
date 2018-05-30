@@ -1,0 +1,17 @@
+@import "./datetimepicker.scss";
+@import "./multiselect.scss";
+@import "../common/variables.scss";
+
+.search { 
+	border-bottom: 1px dotted $HEADCOLOR-2; 
+	margin-bottom: 30px; 
+	.form-control {
+		display: inline-block; 
+		width: 70%; 
+	}
+	.datetime-wrap { 
+		display: inline-block; 
+		vertical-align: middle; 
+		float: none; 
+	}
+}
