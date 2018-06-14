@@ -15,16 +15,18 @@
 create table ACTIVITY_FORM_ATTR_INFO
 (
 	formAttrInfoId NUMBER NOT NULL primary key,
-	ruleId NUMBER NOT NULL,
 	formAttrName VARCHAR2(40) NOT NULL UNIQUE,
-	formAttrNameLabel VARCHAR2(100) NOT NULL,
-	formAttrNameDefaultValue VARCHAR2(400),
+	formAttrNameLabel VARCHAR2(30) NOT NULL,
+	formAttrNameDefaultValue VARCHAR2(100),
 	formAttrNameValidation VARCHAR2(100),
-	formAttrNameType NUMBER NOT NULL,
-	formAttrNameFillType VARCHAR2(100) NOT NULL,
+	formAttrNameType VARCHAR2(30) NOT NULL ,
+	formAttrNameFillType VARCHAR2(30) NOT NULL,
 	createUser VARCHAR2(40) NOT NULL,
 	createTime Timestamp not null,
-	constraint fk_ruleId foreign key (ruleId) references ACTIVITY_RULES(ruleId)
+	ruleIds VARCHAR2(500),
+	FORMATTRINTRODUCE VARCHAR2(500),
+	FORMNAMETYPEATTRS VARCHAR2(1000),
+	ORDERFORFORM NUMBER DEFAULT 1
 );
 
 --Create Activity Form Attrs Sequence

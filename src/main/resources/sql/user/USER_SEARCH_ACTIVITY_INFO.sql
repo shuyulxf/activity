@@ -1,13 +1,13 @@
 --Create User search Activity History Info
 create table USER_SEARCH_ACTIVITY_INFO
 (
-	searchId NUMBER NOT NULL primary key,
-	phoneNumber VARCHAR2(11) NOT NULL,
-	activityProvince VARCHAR2(20) NOT NULL,
-	activityCity VARCHAR2(20) NOT NULL,
-	activityApplyCode VARCHAR2(100) NOT NULL,
-	createTime DATE DEFAULT sysdate NOT NULL,
-	query VARCHAR2(50) NOT NULL
+	SEARCHID NUMBER NOT NULL 
+	, PHONENUMBER VARCHAR2(11 BYTE) NOT NULL 
+	, PROVINCE VARCHAR2(20 BYTE) NOT NULL 
+	, CITY VARCHAR2(20 BYTE) 
+	, APPLYCODE VARCHAR2(100 BYTE) NOT NULL 
+	, CREATETIME DATE DEFAULT sysdate NOT NULL 
+	, QUERY VARCHAR2(50 BYTE) NOT NULL 
 );
 
 --Create User search Activity History Sequence

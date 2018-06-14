@@ -53,9 +53,9 @@ function boolean isLoginUser(User params){
 	String[] args = new String[2];
 	args[0] = params.getToken();
 	args[1] = params.getPhoneNumber();
-	String res = JavaWebServiceHelper.InvokeWebService(
-				 "http://xiaozhi.189.cn:8082/SingleLoginInInterface/SingleLoginWSPort?wsdl",
-				 "http://SingleLoginAtIM/", "tokenChecker", args);
+	
+  // 第三方接口调用
+  String res = "第三方接口调用结果";
 				 
     return !"success".equals(res);
 }

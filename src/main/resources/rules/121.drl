@@ -1,0 +1,784 @@
+121.drlpackage indi.shuyu.rules;
+
+import java.util.*;
+import indi.shuyu.model.entity.User;
+import indi.shuyu.actionresult.entity.RuleExResult;
+import indi.shuyu.actionresult.entity.ActivityExResult;
+import indi.shuyu.core.rules.GlobalFuncForRules;
+import indi.shuyu.core.rules.RuleRelatedDaoSourceFunc;
+import indi.shuyu.model.entity.Activity;
+import indi.shuyu.common.base.Base;
+import indi.shuyu.common.base.JacksonUtils;
+import java.sql.Timestamp;
+import indi.shuyu.common.base.StringUtils;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import indi.shuyu.model.entity.Cache;
+
+function boolean isFinishNumPerDayValid_121(RuleRelatedDaoSourceFunc $rrds, String activityName, String phoneNumber, String num) {
+	
+	if (num == null) return true;
+	
+	int c = Integer.parseInt(num);
+
+	int total = $rrds.getFinishNumPerDayForUser(phoneNumber, activityName);
+	
+	if ( total < c) return true;
+	
+	return false;
+}
+
+rule "CHECK_FINISH_VALID_PER_DAY_FAIL121"
+   agenda-group "121"
+   lock-on-active true
+   activation-group "CHECK_FINISH_VALID_PER_DAY_ACTIVATION_GROUP"
+   salience 99
+when 
+         $rer: RuleExResult()
+         $rrds: RuleRelatedDaoSourceFunc()
+	 eval($rrds.isNotInProcess($rer))
+	 $params: User()
+   	 $activity: Activity()
+   	 $aer: ActivityExResult()
+ 	 not (eval(isFinishNumPerDayValid_121($rrds, $activity.getActivityName(), $params.getPhoneNumber(), $activity.getAGS().getString("maxNumForJoinActivityTimesPerDay"))))
+then
+	 $aer.setStatus(1);
+	 
+	 String[] formAttrs = {"maxNumForJoinActivityTimesPerDay"};
+	 String reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 1);
+	 
+	 if (reply.length() < 1) reply = "当前用户已超过可以参加活动的日限额";
+	 $aer.setMsg(reply);
+	 
+	 boolean rlt =$rrds.insertJoinInfoForUser($params, 0, JacksonUtils.toJSONString($aer)); 
+	 if (!rlt) $aer.setInfo("插入当前用户的参与活动结果记录失败，请查看原因！");
+	 
+	 drools.halt();
+end
+
+function boolean isCanGetSeriesAward_121(RuleRelatedDaoSourceFunc $rrds, Activity $activity, String phoneNumber) {
+
+	String activityName = $activity.getActivityName();
+	
+	String isSeries = $activity.getAAS().getString("isSuppliedSeriesAwardForJoinActivity");
+	if (isSeries.equals("false")) return false;
+	
+	String num = $activity.getAAS().getString("numForjoinActivityToEarnSeriesAward");
+	if (num == null) return false;
+	
+	int c = Integer.parseInt(num);
+	if (c == 0) return false;
+	
+	int total = $rrds.getTotalSeriesAwardNumForUser(phoneNumber, activityName);
+	boolean isExistSeriesAward = $rrds.ifExistCurSeriesAward(phoneNumber, activityName);
+	
+	if ( total > 0 && !isExistSeriesAward && total % c == 0) return true;
+	
+	return false;
+}
+
+rule "USER_SATISFY_ACTIVITY_SERIES_AWARD_SUC121"
+   agenda-group "121"
+   lock-on-active true
+   activation-group "IF_OR_NOT_GIVE_SERIES_AWARD_ACTIVATION_GROUP"
+   salience 81
+when 
+   	 $activity: Activity()
+   	 $aer: ActivityExResult()
+   	 $params: User()
+   	 $rrds: RuleRelatedDaoSourceFunc()
+   	 eval(isCanGetSeriesAward_121($rrds, $activity, $params.getPhoneNumber()))
+then
+	 boolean rlt = $rrds.insertAwardInfoForUser($params, $activity, true);
+	 String[] formAttrs = {"isSuppliedSeriesAwardForJoinActivity"};
+	 int awardNum = 0;
+	 String awardType = ""; 
+	 String reply = "";
+	 String awardNumStr = "";
+	 if (rlt) {
+	  	$aer.setStatus(0);
+	  	awardType = $params.getAwardType();
+	  	awardNum = $params.getNumberForAward();
+	  	reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 0);
+	  	
+	    if (awardType.equals("充值卡")) awardNumStr = awardNum + "" +  "元";
+	    else awardNumStr = awardNum +  ""  +  "个";
+	    
+	    if (reply.length() > 0) {
+	 
+		    reply = reply.replaceFirst("#prizeName#", awardType);
+	 	    reply = reply.replaceFirst("#prizeNum#", awardNumStr);
+		 } else {
+		 	reply = "恭喜您获得连续奖励" +  awardNumStr +  awardType; 
+		 }
+		 
+	 } else {
+	 	$aer.setStatus(1);
+	 	reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 1);
+	 	if (reply.length() == 0) {
+	 		reply = "奖品已经发放完毕"; 
+	 	}
+	 }
+	 
+	 $aer.setMsg($aer.getMsg() +  "," +  reply);
+	 
+	 if(!rlt) {
+	 	drools.halt();
+	 }
+end
+
+rule "TRIGER_WHEN_USER_PASS_FINAL_QUALIFICATION_CHECK121"
+   agenda-group "121"
+   lock-on-active true
+   activation-group "USER_PASS_FINAL_QULIFICATION_ACTIVATION_GROUP"
+   salience 90
+when 
+   	 $params: User()
+   	 $activity: Activity()
+   	 $aer: ActivityExResult()
+   	 $rrds: RuleRelatedDaoSourceFunc()
+then
+         $aer.setStatus(0);
+	 $aer.setMsg("当前用户通过该活动终审资格审查");
+	 boolean rlt =$rrds.insertJoinInfoForUser($params, 1, JacksonUtils.toJSONString($aer)); 
+	 if (!rlt) $aer.setInfo("插入当前用户的参与活动结果记录失败，请查看原因！");
+end
+
+function boolean isAnswerRight_121(String q, JSONArray options, String answer, RuleRelatedDaoSourceFunc $rrds) {
+
+	return $rrds.judgeAnswerIsRight(q, options, answer);
+}
+
+rule "PRIZE_QUIZACTIVITY_SELFRULEVALIDATION_SUC_RULE121"
+   agenda-group "121"
+   lock-on-active true
+   activation-group "PRIZE_QUIZACTIVITY_SELFRULEVALIDATION_RULE_GROUP"
+   salience 94
+when
+	$user: User()
+	$activity: Activity(activityType == "有奖问答" || activityType == "闯关游戏")
+	$aer: ActivityExResult()
+	$rrds: RuleRelatedDaoSourceFunc()
+	$rer: RuleExResult()
+then
+	int defaultState = 3;
+
+	int status = $rer.getStatus();
+	if ("有奖问答".equals($activity.getActivityType())) status = defaultState;
+
+	String sessionId = $user.getSessionId();
+	Cache c = $rrds.getCache(sessionId);
+	String questionStr = "";
+	JSONObject infos = null;
+	int state = -1;
+	int idx = -1;
+	int activityIndex = -1;
+	int activityLength = 0;
+
+	if (status == 4) {
+		if (c == null) {
+			$aer.setMsg("闯关游戏状态异常，请稍后重试");
+			$rrds.removeCache(sessionId);
+			$aer.setStatus(1);
+			drools.halt();
+		} else {
+		
+			infos = c.getInfos();
+
+			idx = Integer.parseInt(infos.getString("quesSeq"));
+			state = infos.getInteger("state");
+			activityIndex = infos.getInteger("activityIndex");
+			String activityListStr = $activity.getAGS().getString("PassThroughActivityList");
+			JSONArray activityList = JSON.parseArray(activityListStr);
+			activityLength = activityList.size();
+			JSONObject activity = activityList.getJSONObject(activityIndex);
+			questionStr = activity.getString("attributes"); 
+		}
+	} else if (status == defaultState){
+		questionStr = $activity.getAGS().getString("activityQuestions");
+	} 
+
+	if (status == 4 || status == defaultState) {
+		if (questionStr == null || "".equals(questionStr)) {
+			$aer.setInfo("有奖问答的问题未设置");
+			$rrds.removeCache(sessionId);
+			$aer.setStatus(1);
+			drools.halt();
+		} else {
+			JSONArray questions = JSON.parseArray(questionStr);
+			int ql = questions.size();
+			if ((c != null && status == defaultState) || (status != defaultState && idx != -1)) {
+
+				if (infos == null) infos = c.getInfos();
+				if (idx == -1) idx = Integer.parseInt(infos.getString("quesSeq"));
+				if (state == -1) state = Integer.parseInt(infos.getString("state"));
+
+				if ((System.currentTimeMillis() - c.getT()) / (1000 * 60) > 10) {
+					$aer.setInfo("您参加的有奖问答活动已经超时，请重新开始");
+					$rrds.removeCache(sessionId);
+					$aer.setStatus(1);
+					drools.halt();
+				} else {
+
+					JSONObject question = questions.getJSONObject(idx);
+					JSONArray options = question.getJSONArray("options");
+	                String answer = question.getString("answer");
+					String q = $user.getQuery();
+					
+					if (isAnswerRight_121(q, options, answer , $rrds)) {
+						++idx;
+						if (idx >= ql) {
+							if(status == defaultState) {
+								$aer.setMsg("成功完成有奖问答");
+								$rrds.removeCache(sessionId);
+								$aer.setStatus(0);
+							} else {
+								if (activityIndex == activityLength - 1) {
+									$aer.setMsg("成功完成闯关游戏");
+									$rrds.removeCache(sessionId);
+									$aer.setStatus(0);
+								} else {
+									$aer.setMsg("成功闯过第" + (activityIndex+1) + "关：有奖问答");
+									$rrds.updateCache(sessionId, activityIndex + 1, 0, 2);
+									$aer.setStatus(status);
+									drools.halt();
+								}	
+							}
+						} else {
+							$aer.setMsg($rrds.getPrizeQuizQuestion(questions.getJSONObject(idx)));
+							$rrds.updateCache(sessionId, idx, defaultState, 1);
+							$aer.setStatus(status);
+							drools.halt();
+						}
+					} else {
+						String msg = "";
+						if(status == defaultState) {
+							msg = "回答错误，有奖问答结束";
+						} else {
+							msg = "闯关游戏的第" + (activityIndex + 1) + "关“有奖问答”回答错误，闯关游戏结束";
+						}
+						$aer.setMsg(msg);
+						$rrds.removeCache(sessionId);
+						$aer.setStatus(1);
+						drools.halt();
+					}
+				}
+			} else {
+				
+				System.out.println("第一次答题："+activityIndex);
+				if (ql == 0) {
+					$aer.setInfo("有奖问答的问题未设置");
+					$aer.setStatus(1);
+				} else {
+					String ques = $rrds.getPrizeQuizQuestion(questions.getJSONObject(0));
+					$aer.setMsg(ques);
+					if (status == defaultState) {
+						$rrds.addNewCache($user, $activity, status, 0, defaultState, 1);
+					} else {
+						$rrds.updateCache(sessionId, 0, defaultState, 1);
+					}
+				}
+				drools.halt();
+			}
+		}
+	}
+end
+
+function boolean isFinishNumPerWeekValid_121(RuleRelatedDaoSourceFunc $rrds, String activityName, String phoneNumber, String num) {
+	
+	if (num == null) return true;
+	
+	int c = Integer.parseInt(num);
+
+	int total = $rrds.getFinishNumPerWeekForUser(phoneNumber, activityName);
+	
+	if ( total < c) return true;
+	
+	return false;
+}
+
+rule "CHECK_FINISH_VALID_PER_WEEK_FAIL121"
+   agenda-group "121"
+   lock-on-active true
+   activation-group "CHECK_FINISH_VALID_PER_WEEK_ACTIVATION_GROUP"
+   salience 98
+when 
+         $rer: RuleExResult()
+         $rrds: RuleRelatedDaoSourceFunc()
+	  eval($rrds.isNotInProcess($rer))
+	 $params: User()
+   	 $activity: Activity()
+   	 $aer: ActivityExResult()
+ 	 not (eval(isFinishNumPerWeekValid_121($rrds, $activity.getActivityName(), $params.getPhoneNumber(), $activity.getAGS().getString("maxNumForJoinActivityTimesPerWeek"))))
+then
+	 $aer.setStatus(1);
+	 
+	 String[] formAttrs = {"maxNumForJoinActivityTimesPerWeek"};
+	 String reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 1);
+	 
+	 if (reply.length() < 1) reply = "当前用户已超过可以参加活动的周限额";
+	 $aer.setMsg(reply);
+	 
+	  boolean rlt =$rrds.insertJoinInfoForUser($params, 0, JacksonUtils.toJSONString($aer)); 
+
+	 if (!rlt) $aer.setInfo("插入当前用户的参与活动结果记录失败，请查看原因！");
+
+	 drools.halt();
+end
+
+function boolean isFinishNumPerMonthValid_121(RuleRelatedDaoSourceFunc $rrds, String activityName, String phoneNumber, String num) {
+	
+	if (num == null) return true;
+	
+	int c = Integer.parseInt(num);
+
+	int total = $rrds.getFinishNumPerMonthForUser(phoneNumber, activityName);
+	
+	if ( total < c) return true;
+	
+	return false;
+}
+
+rule "CHECK_FINISH_VALID_PER_MONTH_FAIL121"
+   agenda-group "121"
+   lock-on-active true
+   activation-group "CHECK_FINISH_VALID_PER_MONTH_ACTIVATION_GROUP"
+   salience 97
+when 
+         $rer: RuleExResult()
+	 $rrds: RuleRelatedDaoSourceFunc()
+	 eval( $rrds.isNotInProcess($rer))
+	 $params: User()
+   	 $activity: Activity()
+   	 $aer: ActivityExResult()
+   
+ 	 not (eval(isFinishNumPerMonthValid_121($rrds, $activity.getActivityName(), $params.getPhoneNumber(), $activity.getAGS().getString("maxNumForJoinActivityTimesPerMonth"))))
+then
+	 $aer.setStatus(1);
+	 
+	 String[] formAttrs = {"maxNumForJoinActivityTimesPerMonth"};
+	 String reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 1);
+	 
+	 if (reply.length() < 1) reply = "当前用户已超过可以参加活动的月限额";
+	  $aer.setMsg(reply);
+	  
+	 boolean rlt = $rrds.insertJoinInfoForUser($params, 0, JacksonUtils.toJSONString($aer)); 
+
+	 if (!rlt) $aer.setInfo("插入当前用户的参与活动结果记录失败，请查看原因！");
+
+	 drools.halt();
+end
+
+rule "PASS_THROUGH_ACTIVITY_SELFRULEVALIDATION_SUC_RULE121"
+   agenda-group "121"
+   lock-on-active true
+   activation-group "PASSTHROUGH_ACTIVITY_SELFRULEVALIDATION_RULE_GROUP"
+   salience 95
+when
+	$user: User()
+	$activity: Activity(activityType == "闯关游戏")
+	$aer: ActivityExResult()
+	$rrds: RuleRelatedDaoSourceFunc()
+	$rer: RuleExResult()
+then
+
+	int status = 4;
+	String sessionId = $user.getSessionId();
+	Cache c = $rrds.getCache(sessionId);
+	JSONObject infos = null;
+	int activityIndex = -1;
+	String activityListStr = $activity.getAGS().getString("PassThroughActivityList");
+	String type = "";
+	int state = -1;
+
+	if (activityListStr == null || "".equals(activityListStr)) {
+		$aer.setInfo("闯关游戏的游戏列表未设置");
+		$rrds.removeCache(sessionId);
+		$aer.setStatus(1);
+		drools.halt();
+	} else {
+
+		JSONArray activityList = JSON.parseArray(activityListStr);
+		int al = activityList.size();
+
+		if (c != null) {
+
+			if ((System.currentTimeMillis() - c.getT()) / (1000 * 60) > 10) {
+				$aer.setInfo("您参加的闯关游戏已经超时，请重新开始");
+				$rrds.removeCache(sessionId);
+				$aer.setStatus(1);
+				drools.halt();
+			} else {
+
+				infos = c.getInfos();
+				activityIndex = infos.getInteger("activityIndex");
+
+				JSONObject activity = activityList.getJSONObject(activityIndex);
+				type = activity.getString("type");
+				if ("有奖问答".equals(type)) {
+					state = 3;
+					$rrds.updateCache(sessionId, activityIndex, state, 2);
+				} else {
+					state = 0;
+					if(activityIndex < al - 1) {
+						activityIndex++;
+						$aer.setMsg("成功闯过第" + activityIndex + "关：" + type + "活动");
+						$rrds.updateCache(sessionId, activityIndex, state, 2);
+						$aer.setStatus(status);
+						drools.halt();
+					}
+					else {
+						$aer.setMsg("成功完成闯关游戏");
+						$rrds.removeCache(sessionId);
+						$rer.setStatus(0);
+						$aer.setStatus(0);
+					} 
+				}
+			}
+		} else {
+		
+			// 第一次闯关
+			if (al == 0) {
+				$aer.setInfo("闯关游戏的游戏列表未设置");
+				$aer.setStatus(1);
+				drools.halt();
+			} else {
+				JSONObject typeObj = activityList.getJSONObject(0);
+				type = typeObj.getString("type");
+				int idx = 0;
+
+				if ("有奖问答".equals(type)) {
+					$rer.setStatus(status);
+					$rrds.addNewCache($user, $activity, status, idx, 3, 2);
+				} else {
+					$aer.setMsg("成功闯过第1关：" + type + "活动");
+					$rrds.addNewCache($user, $activity, status, ++idx, 0, 2);
+					drools.halt();
+				}
+			}
+			
+		}
+	}
+end
+
+function boolean isFinishNumValid_121(RuleRelatedDaoSourceFunc $rrds, String activityName, String phoneNumber, String num) {
+	
+	if (num == null) return true;
+	
+	int c = Integer.parseInt(num);
+
+	int total = $rrds.getFinishNumForUser(phoneNumber, activityName);
+	
+	if ( total < c) return true;
+	
+	return false;
+}
+
+rule "CHECK_MAX_FINISH_NUM_DURING_ACTIVITY_FAIL121"
+   agenda-group "121"
+   lock-on-active true
+   activation-group "CHECK_MAX_TOTAL_FINISH_NUM_ACTIVATION_GROUP"
+   salience 96
+when 
+         $rer: RuleExResult()
+	 $rrds: RuleRelatedDaoSourceFunc()
+	 eval( $rrds.isNotInProcess($rer))
+	 $params: User()
+   	 $activity: Activity()
+   	 $aer: ActivityExResult()
+ 	 not (eval(isFinishNumValid_121($rrds, $activity.getActivityName(), $params.getPhoneNumber(), $activity.getAGS().getString("maxTotalNumForJoinActivity"))))
+then
+	 $aer.setStatus(1);
+	 
+	 String[] formAttrs = {"maxTotalNumForJoinActivity"};
+	 String reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 1);
+	 
+	 if (reply.length() < 1) reply = "当前用户已超过可以参与活动的总次数";
+	 $aer.setMsg(reply);
+	 
+	  boolean rlt =$rrds.insertJoinInfoForUser($params, 0, JacksonUtils.toJSONString($aer)); 
+
+	 if (!rlt) $aer.setInfo("插入当前用户的参与活动结果记录失败，请查看原因！");
+
+	 drools.halt();
+end
+
+function boolean isValidRate_121(String rateStr, User u) {
+
+	if (rateStr == null || rateStr.length() == 0) return false;
+
+	double rate = Double.valueOf(rateStr).doubleValue();
+	System.out.println(rate);
+	double r = GlobalFuncForRules.getRandomRate();
+	if (r < 1 - rate) return false;
+	u.setRate(r);
+	
+	return true;
+}
+
+rule "USER_IF_OR_NOT_SATISFY_ACTIVITY_AWARD_RATE_FAIL121"
+   agenda-group "121"
+   lock-on-active true
+   activation-group "ACTIIVTY_USER_EARN_AWARD_RATE_ACTIVATION_GROUP"
+   salience 87
+when 
+     $user: User()
+   	 $activity: Activity()
+   	 $aer: ActivityExResult()
+ 	  not (eval(isValidRate_121($activity.getAAS().getString("earnAwardRate"), $user)))
+then
+         $aer.setStatus(1);
+	 String[] formAttrs = {"earnAwardRate"};
+	 String reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 0);
+	 if (reply.length() < 1) reply = "该用户未通过中奖概率验证";
+	 $aer.setMsg(reply);
+	 
+	 drools.halt();
+end
+
+function boolean isEarnAwardNumPerDayValid_121(RuleRelatedDaoSourceFunc $rrds, String activityName, String phoneNumber, String num) {
+	
+	if (num == null) return true;
+	
+	int c = Integer.parseInt(num);
+        if (c == 0) return true;
+	int total = $rrds.getEarnAwardNumPerDayForUser(phoneNumber, activityName);
+	
+	if ( total < c) return true;
+	
+	return false;
+}
+
+rule "CHECK_EARN_AWARD_PER_DAY_FAIL121"
+   agenda-group "121"
+   lock-on-active true
+   activation-group "CHECK_ERAN_AWARD_NUM_PER_DAY_ACTIVATION_GROUP"
+   salience 86
+when 
+     $user: User()
+   	 $activity: Activity()
+   	 $aer: ActivityExResult()
+   	 $rrds: RuleRelatedDaoSourceFunc()
+ 	 not (eval(isEarnAwardNumPerDayValid_121($rrds, $activity.getActivityName(), $user.getPhoneNumber(), $activity.getAAS().getString("maxNumForTheAwardPerDay"))))
+then
+         $aer.setStatus(1);
+	 String[] formAttrs = {"maxNumForTheAwardPerDay"};
+	 String reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 1);
+	 if (reply.length() < 1) reply = "当前用户已超过可以获取奖励的日限额";
+	 $aer.setMsg(reply);
+	 
+	 drools.halt();
+end
+
+
+function boolean isEarnAwardNumPerWeekValid_121(RuleRelatedDaoSourceFunc $rrds, String activityName, String phoneNumber, String num) {
+	
+	if (num == null) return true;
+	
+	int c = Integer.parseInt(num);
+        if (c == 0) return true;
+	int total = $rrds.getEarnAwardNumPerWeekForUser(phoneNumber, activityName);
+	
+	if ( total < c) return true;
+	
+	return false;
+}
+
+rule "CHECK_EARN_AWARN_NUM_PER_WEEK_FAIL121"
+   agenda-group "121"
+   lock-on-active true
+   activation-group "CHECK_ERAN_AWARD_NUM_PER_WEEK_ACTIVATION_GROUP"
+   salience 85
+when 
+     $user: User()
+   	 $activity: Activity()
+   	 $aer: ActivityExResult()
+   	 $rrds: RuleRelatedDaoSourceFunc()
+ 	 not (eval(isEarnAwardNumPerWeekValid_121($rrds, $activity.getActivityName(), $user.getPhoneNumber(), $activity.getAAS().getString("maxNumForTheAwardPerWeek"))))
+then
+         $aer.setStatus(1);
+	 String[] formAttrs = {"maxNumForTheAwardPerWeek"};
+	 String reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 1);
+	 if (reply.length() < 1) reply = "当前用户已超过可以获取奖励的周限额";
+	 $aer.setMsg(reply);
+	 
+	 drools.halt();
+end
+
+function boolean isEarnAwardNumPerMonthValid_121(RuleRelatedDaoSourceFunc $rrds, String activityName, String phoneNumber, String num) {
+	
+	if (num == null) return true;
+	
+	int c = Integer.parseInt(num);
+
+        if (c == 0) return true;
+
+	int total = $rrds.getEarnAwardNumPerMonthForUser(phoneNumber, activityName);
+	
+	if ( total < c) return true;
+	
+	return false;
+}
+
+rule "CHECK_EARN_AWARN_NUM_PER_MONTH_FAIL121"
+   agenda-group "121"
+   lock-on-active true
+   activation-group "CHECK_ERAN_AWARD_NUM_PER_MONTH_ACTIVATION_GROUP"
+   salience 84
+when 
+     $user: User()
+   	 $activity: Activity()
+   	 $aer: ActivityExResult()
+   	 $rrds: RuleRelatedDaoSourceFunc()
+ 	 not (eval(isEarnAwardNumPerMonthValid_121($rrds, $activity.getActivityName(), $user.getPhoneNumber(), $activity.getAAS().getString("maxNumForTheAwardPerMonth"))))
+then
+         $aer.setStatus(1);
+	 String[] formAttrs = {"maxNumForTheAwardPerMonth"};
+	 String reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 1);
+	 if (reply.length() < 1) reply = "当前用户已超过可以获取奖励的月限额";
+	 $aer.setMsg(reply);
+	 
+	 drools.halt();
+end
+
+function boolean isEarnAwardNumTotalValid_121(RuleRelatedDaoSourceFunc $rrds, String activityName, String phoneNumber, String num) {
+	
+	if (num == null) return true;
+	
+	int c = Integer.parseInt(num);
+        if (c == 0) return true;
+	int total = $rrds.getEarnAwardNumForUser(phoneNumber, activityName);
+	
+	if ( total < c) return true;
+	
+	return false;
+}
+
+rule "CHECK_MAX_EARN_AWARD_NUM_DURING_ACTIVITY_FAIL121"
+   agenda-group "121"
+   lock-on-active true
+   activation-group "CHECK_MAX_TOTAL_EARN_AWARD_NUM_ACTIVATION_GROUP"
+   salience 83
+when 
+     $user: User()
+   	 $activity: Activity()
+   	 $aer: ActivityExResult()
+   	 $rrds: RuleRelatedDaoSourceFunc()
+ 	 not (eval(isEarnAwardNumTotalValid_121($rrds, $activity.getActivityName(), $user.getPhoneNumber(), $activity.getAAS().getString("maxTotalNumForEarnAward"))))
+then
+         $aer.setStatus(1);
+	 String[] formAttrs = {"maxTotalNumForEarnAward"};
+	 String reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 1);
+	 if (reply.length() < 1) reply = "当前用户已超过活动期间获奖次数最大限额";
+	 $aer.setMsg(reply);
+	 
+	 drools.halt();
+end
+
+function boolean ifSendAward_121(Activity $activity) {
+    String type = $activity.getAAS().getString("activityAwardDeliveryType");
+    if (type == null) return false;
+	if (type.equals("直接发放奖品")) {
+		JSONArray al = $activity.getAAS().getJSONArray("activityAwardList");
+		if (al == null || al.size() == 0) return false;
+	}
+	
+	return false;
+}
+
+rule "SEND_AWARD_FOR_USER_SUC121"
+   agenda-group "121"
+   lock-on-active true
+   activation-group "SEND_AWARD_TO_USER_ACTIVATION_GROUP"
+   salience 82
+when 
+   	 $activity: Activity()
+   	 $aer: ActivityExResult()
+   	 $params: User()
+   	 $rrds: RuleRelatedDaoSourceFunc()
+ 	 not (eval(ifSendAward_121($activity)))
+then
+
+	boolean rlt = $rrds.insertAwardInfoForUser($params, $activity, false);
+	 String[] formAttrs = {"activityAwardDeliveryType"};
+	 int awardNum = 0;
+	 String awardType = ""; 
+	 String reply = "";
+	 String awardNumStr = "";
+	 if (rlt) {
+	  	$aer.setStatus(0);
+	  	awardType = $params.getAwardType();
+	  	awardNum = $params.getNumberForAward();
+	  	reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 0);
+	  	
+	  	
+	    if (awardType.equals("充值卡")) awardNumStr = awardNum + "" +  "元";
+	    else awardNumStr = awardNum +  ""  +  "个";
+	    
+	    if (reply.length() > 0) {
+	 
+		    reply = reply.replaceFirst("#prizeName#", awardType);
+	 	    reply = reply.replaceFirst("#prizeNum#", awardNumStr);
+		 } else {
+		 	reply = "恭喜您获得" +  awardNumStr  + awardType; 
+		 }
+		 
+	 } else {
+	 	$aer.setStatus(1);
+	 	reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 1);
+	 	if (reply.length() == 0) {
+	 		reply = "奖品已经发放完毕"; 
+	 	}
+	 }
+	 
+	 $aer.setMsg(reply);
+	 
+	 if(!rlt) {
+	 	drools.halt();
+	 }
+end
+
+rule "SEND_AWARD_FOR_USER_FAIL121"
+   agenda-group "121"
+   lock-on-active true
+   activation-group "SEND_AWARD_TO_USER_ACTIVATION_GROUP"
+   salience 82
+when 
+   	 $activity: Activity()
+   	 $aer: ActivityExResult()
+ 	 not (eval(ifSendAward_121($activity)))
+then
+         $aer.setStatus(1);
+	 String[] formAttrs = {"activityAwardDeliveryType"};
+	 String reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 1);
+	 if (reply.length() < 1) reply = "该活动发放单次奖品失败，请检查奖品设置是否正确";
+	 $aer.setMsg(reply);
+	 
+	 drools.halt();
+end
+
+function boolean isNotSetAward_121(String type) {
+	if (type.equals("不设置奖品")) return true;
+	return false;
+}
+
+rule "ACTIVIY_WITH_NO_AWARD121"
+   agenda-group "121"
+   lock-on-active true
+   activation-group "ACTIVITY_SEND_AWARD_TYPE_ACTIVATION_GROUP"
+   salience 89
+when 
+   	 $activity: Activity()
+   	 $aer: ActivityExResult()
+ 	 eval(isNotSetAward_121($activity.getAAS().getString("activityAwardDeliveryType")))
+then
+         $aer.setStatus(0);
+	 String[] formAttrs = {"activityAwardDeliveryType"};
+	 String reply = GlobalFuncForRules.getReplyForRule($activity, formAttrs, 0);
+	 if (reply.length() < 1) reply = "该活动未设置奖品";
+	 $aer.setMsg(reply);
+	 
+	 drools.halt();
+end
+

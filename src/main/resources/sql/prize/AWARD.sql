@@ -5,6 +5,9 @@ create table ACTIVITY_AWARD
 	prizeId NUMBER NOT NULL,
 	activityId NUMBER NOT NULL,
 	awardNum NUMBER NOT NULL,
+	NUMSTART NUMBER NOT NULL,
+	NUMEND NUMBER NOT NULL,
+	DISTANCE NUMBER NOT NULL,
 	createTime TIMESTAMP NOT NULL,
 	constraint fk_activityId foreign key (activityId) references ACTIVITY_ATTRIBUTES(activityId),
 	constraint fk_prizeId foreign key (prizeId) references ACTIVITY_PRIZE(prizeId)

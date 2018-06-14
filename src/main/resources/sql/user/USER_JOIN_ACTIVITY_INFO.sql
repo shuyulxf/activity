@@ -1,12 +1,11 @@
 --Create User Join Activity History Info
 create table USER_JOIN_ACTIVITY_INFO
 (
-	recordId NUMBER NOT NULL primary key,
-	searchId NUMBER NOT NULL,
-	activityName VARCHAR2(100) NOT NULL,
-	keyword VARCHAR2(50) NOT NULL,
-	isFinished NUMBER(1) DEFAULT 0,
-	replyInfo VARCHAR2(600),
+	 RECORDID NUMBER NOT NULL 
+, SEARCHID NUMBER NOT NULL 
+, ISFINISHED NUMBER(1, 0) DEFAULT 0 NOT NULL 
+, REPLYINFO VARCHAR2(600 BYTE) 
+, ACTIVITYNAME VARCHAR2(100 BYTE) NOT NULL 
 	constraint fk_searchId foreign key (searchId) references USER_SEARCH_ACTIVITY_INFO(searchId)
 );
 
