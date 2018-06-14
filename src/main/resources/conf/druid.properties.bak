@@ -1,7 +1,7 @@
 druid.driverClassName=oracle.jdbc.OracleDriver 
-druid.url=jdbc\:oracle\:thin\:@222.186.101.210\:1521\:shhtele
-druid.username=kms
-druid.password=nkipwdu
+druid.url=DBURL
+druid.username=username
+druid.password=pwd
 druid.initialSize=10
 druid.minIdle=6
 druid.maxActive=50

@@ -31,6 +31,11 @@ import indi.shuyu.model.entity.Rule;
 import indi.shuyu.model.entity.RuleGroup;
 import indi.shuyu.system.logger.LogDash;
 
+/*
+* @author shuyu
+* @des 规则管理的controller定义，指定页面的访问地址
+*/
+
 @Controller
 @RequestMapping("/rule")
 public class RuleManageController{

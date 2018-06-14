@@ -34,6 +34,11 @@ import indi.shuyu.model.entity.Rule;
 import indi.shuyu.model.entity.RuleGroup;
 import indi.shuyu.system.logger.LogDash;
 
+/*
+* @author shuyu
+* @des 活动模型管理模块的controller定义，指定页面的访问地址
+*/
+
 @Controller
 @RequestMapping("/form")
 public class FormAttrManageController {

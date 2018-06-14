@@ -28,6 +28,11 @@ import indi.shuyu.initialization.GlobalStaticValues;
 import indi.shuyu.model.dao.RuleGroupDao;
 import indi.shuyu.model.entity.RuleGroup;
 
+/*
+* @author shuyu
+* @des 规则组管理的controller定义，指定页面的访问地址
+*/
+
 @Controller
 @RequestMapping("/rulegroup")
 public class RuleGroupManageController {

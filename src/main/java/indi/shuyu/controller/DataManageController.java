@@ -25,6 +25,11 @@ import indi.shuyu.model.entity.User;
 import indi.shuyu.system.logger.LogDash;
 
 
+/*
+* @author shuyu
+* @des 数据统计模块的controller定义，指定页面的访问地址
+*/
+
 @Controller
 @RequestMapping("")
 public class DataManageController {

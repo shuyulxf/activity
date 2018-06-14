@@ -14,6 +14,11 @@ import org.springframework.web.servlet.ModelAndView;
 import indi.shuyu.model.dao.PrizeDao;
 import indi.shuyu.model.entity.Prize;
 
+/*
+* @author shuyu
+* @des 系统管理的controller定义，指定页面的访问地址
+*/
+
 @Controller
 @RequestMapping("/system")
 public class SystemManageController {
